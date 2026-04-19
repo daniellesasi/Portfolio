@@ -141,13 +141,24 @@
                 const sections = Array.from(container.querySelectorAll('.project-section'));
                 let currentB = 0;
 
+                function goToB(index) {
+                    currentB = Math.max(0, Math.min(sections.length - 1, index));
+                    container.style.transform = `translateX(${currentB * -100}vw)`;
+                }
+
                 sections.forEach(section => {
                     section.addEventListener('click', function(e) {
                         const goLeft = e.clientX < window.innerWidth / 2;
-                        currentB = goLeft
-                            ? Math.max(0, currentB - 1)
-                            : Math.min(sections.length - 1, currentB + 1);
-                        container.style.transform = `translateX(${currentB * -100}vw)`;
+                        goToB(goLeft ? currentB - 1 : currentB + 1);
+                    });
+                });
+
+                container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('href').slice(1);
+                        const idx = sections.findIndex(s => s.id === targetId);
+                        if (idx !== -1) goToB(idx);
                     });
                 });
             });
