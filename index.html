@@ -26,10 +26,10 @@
         .portfolio-wrapper.active { display: block; }
         
         .vertical-scroll-container { display: flex; width: 100vw; height: 100vh; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .project-section { min-width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; cursor: pointer; }
+        .project-section { min-width: 100vw; height: 100vh; flex-shrink: 0; overflow-y: scroll; scroll-snap-type: y proximity; cursor: pointer; }
 
-        .horizontal-gallery { display: flex; flex-direction: column; width: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .horizontal-gallery img, .horizontal-gallery video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; }
+        .horizontal-gallery { display: flex; flex-direction: column; width: 100%; }
+        .horizontal-gallery img, .horizontal-gallery video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; scroll-snap-align: start; }
     </style>
 </head>
 <body>
@@ -140,10 +140,8 @@
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
                 let currentB = 0;
-                let scrollLock = false;
 
                 sections.forEach(section => {
-                    // Click left/right = navigate B sections
                     section.addEventListener('click', function(e) {
                         const goLeft = e.clientX < window.innerWidth / 2;
                         currentB = goLeft
@@ -151,23 +149,6 @@
                             : Math.min(sections.length - 1, currentB + 1);
                         container.style.transform = `translateX(${currentB * -100}vw)`;
                     });
-
-                    // Scroll up/down = navigate C slides
-                    section.addEventListener('wheel', function(e) {
-                        e.preventDefault();
-                        if (scrollLock || Math.abs(e.deltaY) < 30) return;
-                        scrollLock = true;
-                        setTimeout(() => { scrollLock = false; }, 900);
-                        const gallery = this.querySelector('.horizontal-gallery');
-                        const media = gallery.querySelectorAll('img, video');
-                        if (media.length <= 1) return;
-                        let idx = parseInt(gallery.getAttribute('data-current-index'));
-                        idx = e.deltaY > 0
-                            ? (idx + 1) % media.length
-                            : (idx - 1 + media.length) % media.length;
-                        gallery.setAttribute('data-current-index', idx);
-                        gallery.style.transform = `translateY(${idx * -100}vh)`;
-                    }, { passive: false });
                 });
             });
         });
