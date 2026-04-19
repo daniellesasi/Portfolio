@@ -155,9 +155,9 @@
                     // Scroll up/down = navigate C slides
                     section.addEventListener('wheel', function(e) {
                         e.preventDefault();
-                        if (scrollLock) return;
+                        if (scrollLock || Math.abs(e.deltaY) < 30) return;
                         scrollLock = true;
-                        setTimeout(() => { scrollLock = false; }, 600);
+                        setTimeout(() => { scrollLock = false; }, 900);
                         const gallery = this.querySelector('.horizontal-gallery');
                         const media = gallery.querySelectorAll('img, video');
                         if (media.length <= 1) return;
