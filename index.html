@@ -137,19 +137,18 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const galleries = document.querySelectorAll('.horizontal-gallery');
-            galleries.forEach(gallery => {
-                gallery.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const media = this.querySelectorAll('img, video');
+            document.querySelectorAll('.project-section').forEach(section => {
+                section.addEventListener('click', function(e) {
+                    const gallery = this.querySelector('.horizontal-gallery');
+                    const media = gallery.querySelectorAll('img, video');
                     if (media.length <= 1) return;
-                    let currentIndex = parseInt(this.getAttribute('data-current-index'));
+                    let currentIndex = parseInt(gallery.getAttribute('data-current-index'));
                     const goLeft = e.clientX < window.innerWidth / 2;
                     currentIndex = goLeft
                         ? (currentIndex - 1 + media.length) % media.length
                         : (currentIndex + 1) % media.length;
-                    this.setAttribute('data-current-index', currentIndex);
-                    this.style.transform = `translateX(${currentIndex * -100}vw)`;
+                    gallery.setAttribute('data-current-index', currentIndex);
+                    gallery.style.transform = `translateX(${currentIndex * -100}vw)`;
                 });
             });
         });
