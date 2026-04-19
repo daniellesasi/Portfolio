@@ -151,19 +151,28 @@
             } catch(e) { return 0; }
         }
 
+        function applyMenuColor(brightness) {
+            const color = brightness > 128 ? '#000' : '#fff';
+            document.querySelectorAll('.side-menu a').forEach(a => a.style.color = color);
+        }
+
         function updateMenuColor(section) {
             const idx = Math.round(section.scrollTop / window.innerHeight);
             const media = section.querySelectorAll('img, video')[idx];
             if (!media) return;
-            const apply = () => {
-                const brightness = sampleBrightness(media);
-                const color = brightness > 128 ? '#000' : '#fff';
-                document.querySelectorAll('.side-menu a').forEach(a => a.style.color = color);
-            };
-            if (media.tagName === 'IMG' && !media.complete) {
-                media.addEventListener('load', apply, { once: true });
+
+            if (media.tagName === 'VIDEO') {
+                if (media.readyState >= 2) {
+                    applyMenuColor(sampleBrightness(media));
+                } else {
+                    media.addEventListener('loadeddata', () => applyMenuColor(sampleBrightness(media)), { once: true });
+                }
             } else {
-                apply();
+                if (media.complete && media.naturalWidth > 0) {
+                    applyMenuColor(sampleBrightness(media));
+                } else {
+                    media.addEventListener('load', () => applyMenuColor(sampleBrightness(media)), { once: true });
+                }
             }
         }
 
