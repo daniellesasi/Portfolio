@@ -139,14 +139,21 @@
         document.addEventListener('DOMContentLoaded', () => {
             const galleries = document.querySelectorAll('.horizontal-gallery');
             galleries.forEach(gallery => {
-                gallery.addEventListener('click', function() {
-                    const mediaCount = this.querySelectorAll('img, video').length;
-                    if (mediaCount <= 1) return; 
+                gallery.addEventListener('click', function(e) {
+                    const media = Array.from(this.querySelectorAll('img, video'));
+                    if (media.length <= 1) return;
                     let currentIndex = parseInt(this.getAttribute('data-current-index'));
-                    currentIndex = (currentIndex + 1) % mediaCount;
+                    const goLeft = e.clientX < window.innerWidth / 2;
+                    currentIndex = goLeft
+                        ? (currentIndex - 1 + media.length) % media.length
+                        : (currentIndex + 1) % media.length;
                     this.setAttribute('data-current-index', currentIndex);
-                    const slideDistance = currentIndex * -100;
-                    this.style.transform = `translateX(${slideDistance}vw)`;
+                    this.style.transform = `translateX(${currentIndex * -100}vw)`;
+                    media.forEach((el, i) => {
+                        if (el.tagName === 'VIDEO') {
+                            i === currentIndex ? el.play() : el.pause();
+                        }
+                    });
                 });
             });
         });
