@@ -13,8 +13,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; }
         
-        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; mix-blend-mode: difference; }
-        .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: opacity 0.4s ease, transform 0.4s ease; }
+        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; }
+        .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: color 0.3s ease, opacity 0.4s ease, transform 0.4s ease; }
         .side-menu a:hover { opacity: 0.6; transform: translateX(10px); }
         
         .portfolio-switcher { position: fixed; bottom: 40px; left: 40px; z-index: 200; display: flex; gap: 15px; }
@@ -141,6 +141,38 @@
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
         });
 
+        const _c = document.createElement('canvas');
+        _c.width = _c.height = 100;
+        const _x = _c.getContext('2d');
+
+        function setNavColor(bright) {
+            document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
+        }
+
+        function sampleMedia(el, done) {
+            const go = () => {
+                try {
+                    _x.drawImage(el, 0, 0, 100, 100);
+                    const d = _x.getImageData(0, 0, 100, 100).data;
+                    let s = 0;
+                    for (let i = 0; i < d.length; i += 4)
+                        s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                    done(s / (d.length / 4) > 128);
+                } catch(e) { done(false); }
+            };
+            if (el.tagName === 'VIDEO') {
+                el.readyState >= 2 ? go() : el.addEventListener('loadeddata', go, { once: true });
+            } else {
+                el.complete && el.naturalWidth ? go() : el.addEventListener('load', go, { once: true });
+            }
+        }
+
+        function updateNavColor(section) {
+            const media = section.querySelectorAll('img, video');
+            const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), media.length - 1);
+            if (media[idx]) sampleMedia(media[idx], setNavColor);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
@@ -149,6 +181,7 @@
                 function goToB(index) {
                     currentB = Math.max(0, Math.min(sections.length - 1, index));
                     container.scrollTo({ left: currentB * window.innerWidth, behavior: 'smooth' });
+                    setTimeout(() => updateNavColor(sections[currentB]), 900);
                 }
 
                 container.addEventListener('scrollend', () => {
@@ -160,7 +193,15 @@
                         const goLeft = e.clientX < window.innerWidth / 2;
                         goToB(goLeft ? currentB - 1 : currentB + 1);
                     });
+
+                    let scrollTimer;
+                    section.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = setTimeout(() => updateNavColor(section), 250);
+                    });
                 });
+
+                updateNavColor(sections[0]);
 
                 container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
                     link.addEventListener('click', function(e) {
