@@ -25,11 +25,11 @@
         .portfolio-wrapper { display: none; }
         .portfolio-wrapper.active { display: block; }
         
-        .vertical-scroll-container { height: 100vh; width: 100vw; overflow-y: hidden; scroll-behavior: smooth; }
-        .project-section { height: 100vh; width: 100vw; position: relative; overflow: hidden; cursor: pointer; }
+        .vertical-scroll-container { display: flex; width: 100vw; height: 100vh; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .project-section { min-width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; cursor: pointer; }
 
-        .horizontal-gallery { display: flex; height: 100%; width: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .horizontal-gallery img, .horizontal-gallery video { min-width: 100vw; height: 100vh; object-fit: cover; user-select: none; pointer-events: none; }
+        .horizontal-gallery { display: flex; flex-direction: column; width: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .horizontal-gallery img, .horizontal-gallery video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -139,16 +139,20 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
+                let currentB = 0;
                 let scrollLock = false;
 
-                sections.forEach((section, i) => {
-                    // Click = navigate B sections
-                    section.addEventListener('click', function() {
-                        const next = sections[i + 1] || sections[0];
-                        container.scrollTo({ top: sections.indexOf(next) * window.innerHeight, behavior: 'smooth' });
+                sections.forEach(section => {
+                    // Click left/right = navigate B sections
+                    section.addEventListener('click', function(e) {
+                        const goLeft = e.clientX < window.innerWidth / 2;
+                        currentB = goLeft
+                            ? Math.max(0, currentB - 1)
+                            : Math.min(sections.length - 1, currentB + 1);
+                        container.style.transform = `translateX(${currentB * -100}vw)`;
                     });
 
-                    // Scroll = navigate C slides
+                    // Scroll up/down = navigate C slides
                     section.addEventListener('wheel', function(e) {
                         e.preventDefault();
                         if (scrollLock) return;
@@ -162,7 +166,7 @@
                             ? (idx + 1) % media.length
                             : (idx - 1 + media.length) % media.length;
                         gallery.setAttribute('data-current-index', idx);
-                        gallery.style.transform = `translateX(${idx * -100}vw)`;
+                        gallery.style.transform = `translateY(${idx * -100}vh)`;
                     }, { passive: false });
                 });
             });
