@@ -13,8 +13,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; }
         
-        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
-        .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: opacity 0.4s ease, transform 0.4s ease; }
+        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; }
+        .side-menu a { text-decoration: none; color: white; mix-blend-mode: difference; font-size: 2.1rem; transition: opacity 0.4s ease, transform 0.4s ease; }
         .side-menu a:hover { opacity: 0.6; transform: translateX(10px); }
         
         .portfolio-switcher { position: fixed; bottom: 40px; left: 40px; z-index: 200; display: flex; gap: 15px; }
@@ -136,45 +136,9 @@
     </div>
 
     <script>
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-
-        function sampleBrightness(media) {
-            try {
-                ctx.drawImage(media, 0, 0, 64, 64);
-                const d = ctx.getImageData(0, 0, 64, 64).data;
-                let sum = 0;
-                for (let i = 0; i < d.length; i += 4)
-                    sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-                return sum / (d.length / 4);
-            } catch(e) { return 0; }
-        }
-
-        function applyMenuColor(brightness) {
-            const color = brightness > 128 ? '#000' : '#fff';
-            document.querySelectorAll('.side-menu a').forEach(a => a.style.color = color);
-        }
-
-        function updateMenuColor(section) {
-            const idx = Math.round(section.scrollTop / window.innerHeight);
-            const media = section.querySelectorAll('img, video')[idx];
-            if (!media) return;
-
-            if (media.tagName === 'VIDEO') {
-                if (media.readyState >= 2) {
-                    applyMenuColor(sampleBrightness(media));
-                } else {
-                    media.addEventListener('loadeddata', () => applyMenuColor(sampleBrightness(media)), { once: true });
-                }
-            } else {
-                if (media.complete && media.naturalWidth > 0) {
-                    applyMenuColor(sampleBrightness(media));
-                } else {
-                    media.addEventListener('load', () => applyMenuColor(sampleBrightness(media)), { once: true });
-                }
-            }
-        }
+        document.fonts.ready.then(() => {
+            document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
@@ -184,7 +148,6 @@
                 function goToB(index) {
                     currentB = Math.max(0, Math.min(sections.length - 1, index));
                     container.style.transform = `translateX(${currentB * -100}vw)`;
-                    setTimeout(() => updateMenuColor(sections[currentB]), 850);
                 }
 
                 sections.forEach(section => {
@@ -192,9 +155,6 @@
                         const goLeft = e.clientX < window.innerWidth / 2;
                         goToB(goLeft ? currentB - 1 : currentB + 1);
                     });
-
-                    section.addEventListener('scrollend', () => updateMenuColor(section));
-                    section.addEventListener('scroll', () => clearTimeout(section._st) || (section._st = setTimeout(() => updateMenuColor(section), 150)));
                 });
 
                 container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
@@ -205,8 +165,6 @@
                         if (idx !== -1) goToB(idx);
                     });
                 });
-
-                updateMenuColor(sections[0]);
             });
         });
 
