@@ -25,10 +25,10 @@
         .portfolio-wrapper { display: none; }
         .portfolio-wrapper.active { display: block; }
         
-        .vertical-scroll-container { height: 100vh; width: 100vw; overflow-y: hidden; scroll-behavior: smooth; }
-        .project-section { height: 100vh; width: 100vw; position: relative; overflow: hidden; cursor: pointer; }
+        .vertical-scroll-container { height: 100vh; width: 100vw; overflow-y: auto; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .project-section { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; }
 
-        .horizontal-gallery { display: flex; height: 100%; width: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .horizontal-gallery { display: flex; height: 100%; width: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; }
         .horizontal-gallery img, .horizontal-gallery video { min-width: 100vw; height: 100vh; object-fit: cover; user-select: none; pointer-events: none; }
     </style>
 </head>
@@ -137,39 +137,18 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.vertical-scroll-container').forEach(container => {
-                const sections = Array.from(container.querySelectorAll('.project-section'));
-                let currentSection = 0;
-                let scrollLock = false;
-
-                function goToSection(index) {
-                    currentSection = Math.max(0, Math.min(sections.length - 1, index));
-                    container.scrollTo({ top: currentSection * window.innerHeight, behavior: 'smooth' });
-                }
-
-                // Click = navigate between b sections
-                sections.forEach((section, i) => {
-                    section.addEventListener('click', function(e) {
-                        const goUp = e.clientY < window.innerHeight / 2;
-                        goToSection(goUp ? i - 1 : i + 1);
-                    });
-
-                    // Scroll = navigate c slides within section
-                    section.addEventListener('wheel', function(e) {
-                        e.preventDefault();
-                        if (scrollLock) return;
-                        scrollLock = true;
-                        setTimeout(() => { scrollLock = false; }, 600);
-                        const gallery = this.querySelector('.horizontal-gallery');
-                        const media = gallery.querySelectorAll('img, video');
-                        if (media.length <= 1) return;
-                        let idx = parseInt(gallery.getAttribute('data-current-index'));
-                        idx = e.deltaY > 0
-                            ? (idx + 1) % media.length
-                            : (idx - 1 + media.length) % media.length;
-                        gallery.setAttribute('data-current-index', idx);
-                        gallery.style.transform = `translateX(${idx * -100}vw)`;
-                    }, { passive: false });
+            document.querySelectorAll('.project-section').forEach(section => {
+                section.addEventListener('click', function(e) {
+                    const gallery = this.querySelector('.horizontal-gallery');
+                    const media = gallery.querySelectorAll('img, video');
+                    if (media.length <= 1) return;
+                    let currentIndex = parseInt(gallery.getAttribute('data-current-index'));
+                    const goLeft = e.clientX < window.innerWidth / 2;
+                    currentIndex = goLeft
+                        ? (currentIndex - 1 + media.length) % media.length
+                        : (currentIndex + 1) % media.length;
+                    gallery.setAttribute('data-current-index', currentIndex);
+                    gallery.style.transform = `translateX(${currentIndex * -100}vw)`;
                 });
             });
         });
