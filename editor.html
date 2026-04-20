@@ -5,480 +5,514 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio Editor</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: #0d0d0d; color: #fff; height: 100vh; overflow: hidden; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:100vh; overflow:hidden; user-select:none; }
 
-  /* ── HEADER ── */
-  #header { height: 52px; background: #141414; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; padding: 0 24px; flex-shrink: 0; }
-  #header h1 { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: #444; flex: 1; }
-  .btn { background: #222; color: #ccc; border: 1px solid #333; padding: 6px 16px; border-radius: 5px; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
-  .btn:hover { background: #2a2a2a; color: #fff; }
-  .btn.primary { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
-  .btn.primary:hover { background: #e0e0e0; }
-  .btn.green { background: #00bb44; color: #000; border-color: #00bb44; font-weight: 600; }
-  .btn.green:hover { background: #009933; }
-  .btn:disabled { opacity: 0.25; pointer-events: none; }
-  input.token-input { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 6px 12px; border-radius: 5px; font-size: 0.78rem; width: 260px; }
-  input.token-input::placeholder { color: #444; }
-  #status { font-size: 0.75rem; color: #444; }
-  #status.ok { color: #00bb44; }
-  #status.err { color: #f44; }
+/* HEADER */
+#hdr { height:50px; background:#4a4a4a; border-bottom:1px solid #3a3a3a; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+#hdr h1 { font-size:.68rem; letter-spacing:3px; text-transform:uppercase; color:#888; flex:1; }
+.inp { background:#555; border:1px solid #444; color:#fff; padding:6px 12px; border-radius:5px; font-size:.76rem; width:250px; }
+.inp::placeholder { color:#888; }
+.btn { background:#666; color:#ddd; border:1px solid #555; padding:6px 14px; border-radius:5px; font-size:.76rem; cursor:pointer; }
+.btn:hover { background:#777; color:#fff; }
+.btn.w { background:#fff; color:#000; border-color:#fff; font-weight:700; }
+.btn.w:hover { background:#ddd; }
+.btn.g { background:#00bb44; color:#000; border-color:#00bb44; font-weight:700; }
+.btn.g:hover { background:#009933; }
+.btn:disabled { opacity:.2; pointer-events:none; }
+#st { font-size:.72rem; color:#aaa; }
+#st.ok { color:#00ee66; }
+#st.er { color:#f66; }
 
-  /* ── MAIN LAYOUT ── */
-  #app { display: flex; flex-direction: column; height: calc(100vh - 52px); }
+/* GRID */
+#app { height:calc(100vh - 50px); display:flex; flex-direction:column; }
+#grid-view { flex:1; overflow-y:auto; padding:20px 24px 40px; }
+.tabs { display:flex; gap:8px; margin-bottom:18px; }
+.tab { padding:5px 16px; background:#555; border:1px solid #666; border-radius:20px; cursor:pointer; font-size:.74rem; color:#aaa; }
+.tab.active { background:#fff; color:#000; border-color:#fff; }
+.sg { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.sc { background:#4a4a4a; border:1px solid #555; border-radius:9px; overflow:hidden; cursor:pointer; transition:border-color .2s,transform .15s; }
+.sc:hover { border-color:#888; transform:scale(1.015); }
+.sc .prev { height:150px; background:#3a3a3a; position:relative; overflow:hidden; }
+.sc .prev img,.sc .prev video { width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.sc .prev .badge { position:absolute; bottom:7px; right:8px; background:rgba(0,0,0,.6); padding:2px 8px; border-radius:9px; font-size:.6rem; color:#ccc; }
+.sc .foot { padding:9px 13px; display:flex; justify-content:space-between; align-items:center; }
+.sc .lbl { font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:#bbb; }
+.sc .hint { font-size:.64rem; color:#888; }
+.sc:hover .hint { color:#ddd; }
 
-  /* ── GRID VIEW ── */
-  #grid-view { flex: 1; overflow-y: auto; padding: 24px; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-  .tab { padding: 6px 18px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px; cursor: pointer; font-size: 0.78rem; color: #555; }
-  .tab.active { background: #fff; color: #000; border-color: #fff; }
+/* CANVAS EDITOR */
+#ce { position:fixed; inset:0; background:#5a5a5a; z-index:100; display:none; flex-direction:column; }
+#ce.open { display:flex; }
+#ce-hdr { height:50px; background:#4a4a4a; border-bottom:1px solid #3a3a3a; display:flex; align-items:center; gap:12px; padding:0 18px; flex-shrink:0; }
+.back { font-size:1rem; cursor:pointer; color:#aaa; padding:4px 8px; border-radius:4px; }
+.back:hover { color:#fff; background:#666; }
+#ce-title { font-size:.68rem; letter-spacing:3px; text-transform:uppercase; color:#bbb; flex:1; }
+#slide-lbl { font-size:.7rem; color:#aaa; }
+.sep { width:1px; height:24px; background:#666; }
 
-  .sections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .section-card { background: #1a1a1a; border: 1px solid #222; border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.2s, transform 0.2s; }
-  .section-card:hover { border-color: #555; transform: scale(1.01); }
-  .section-card .preview { height: 160px; background: #111; position: relative; overflow: hidden; }
-  .section-card .preview img, .section-card .preview video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .section-card .preview .count-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 10px; font-size: 0.65rem; color: #aaa; }
-  .section-card .card-footer { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
-  .section-card .card-label { font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: #555; }
-  .section-card .edit-hint { font-size: 0.68rem; color: #333; }
-  .section-card:hover .edit-hint { color: #888; }
+/* MAIN CANVAS */
+#ce-body { flex:1; display:flex; overflow:hidden; }
+#layer-panel { width:180px; background:#4a4a4a; border-right:1px solid #3a3a3a; display:flex; flex-direction:column; flex-shrink:0; }
+#layer-panel h2 { font-size:.62rem; letter-spacing:2px; text-transform:uppercase; color:#aaa; padding:12px 14px 8px; border-bottom:1px solid #3a3a3a; }
+#layer-list { flex:1; overflow-y:auto; padding:6px; }
+.layer-item { display:flex; align-items:center; gap:7px; padding:6px 8px; border-radius:5px; cursor:pointer; font-size:.72rem; color:#bbb; margin-bottom:2px; }
+.layer-item:hover { background:#555; color:#fff; }
+.layer-item.sel { background:#2a3a2a; color:#fff; border:1px solid #00bb44; }
+.layer-item .li-thumb { width:32px; height:22px; border-radius:3px; overflow:hidden; flex-shrink:0; background:#666; }
+.layer-item .li-thumb img,.layer-item .li-thumb video { width:100%; height:100%; object-fit:cover; }
+.layer-item .li-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.66rem; }
+.layer-item .li-del { font-size:.7rem; color:#888; cursor:pointer; padding:2px 4px; border-radius:3px; }
+.layer-item .li-del:hover { color:#f55; background:#3a1515; }
+#add-layer-btn { margin:8px; padding:7px; background:#555; border:1px dashed #777; border-radius:5px; text-align:center; cursor:pointer; font-size:.68rem; color:#bbb; }
+#add-layer-btn:hover { border-color:#aaa; color:#fff; }
 
-  /* ── CANVAS EDITOR (full screen overlay) ── */
-  #canvas-editor { position: fixed; inset: 0; background: #0d0d0d; z-index: 100; display: none; flex-direction: column; }
-  #canvas-editor.open { display: flex; }
+#canvas-wrap { flex:1; position:relative; overflow:hidden; background:#666; }
+#canvas { position:absolute; background:#000; overflow:hidden; cursor:default; }
+#canvas.move-cursor { cursor:move; }
+#canvas.crosshair { cursor:crosshair; }
+#canvas.bg-white { background:#fff; }
 
-  #canvas-header { height: 52px; background: #141414; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 14px; padding: 0 20px; flex-shrink: 0; }
-  #canvas-header .back-btn { font-size: 1.1rem; cursor: pointer; color: #888; padding: 4px 8px; }
-  #canvas-header .back-btn:hover { color: #fff; }
-  #canvas-header .canvas-title { font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: #666; flex: 1; }
-  #canvas-header .slide-info { font-size: 0.72rem; color: #444; }
-  .zoom-display { font-size: 0.72rem; color: #444; min-width: 50px; text-align: right; }
+/* SELECTION OVERLAY */
+#sel-box { position:absolute; pointer-events:none; z-index:1000; display:none; }
+#sel-box .sel-border { position:absolute; inset:0; border:2px solid #00cc66; border-radius:1px; }
+.handle { position:absolute; width:10px; height:10px; background:#fff; border:1.5px solid #00cc66; border-radius:2px; pointer-events:all; cursor:pointer; z-index:1001; }
+.handle.nw { top:-5px; left:-5px; cursor:nw-resize; }
+.handle.ne { top:-5px; right:-5px; cursor:ne-resize; }
+.handle.se { bottom:-5px; right:-5px; cursor:se-resize; }
+.handle.sw { bottom:-5px; left:-5px; cursor:sw-resize; }
+.rot-handle { position:absolute; width:14px; height:14px; background:#00cc66; border-radius:50%; top:-28px; left:50%; transform:translateX(-50%); pointer-events:all; cursor:grab; z-index:1001; }
+.rot-line { position:absolute; width:1px; height:20px; background:#00cc66; top:-20px; left:50%; transform:translateX(-50%); }
+.sel-drag { position:absolute; inset:0; pointer-events:all; cursor:move; }
 
-  /* Main canvas area */
-  #canvas-area { flex: 1; position: relative; overflow: hidden; cursor: grab; background: #000; }
-  #canvas-area.grabbing { cursor: grabbing; }
-  #canvas-media-wrap { width: 100%; height: 100%; }
-  #canvas-media-wrap img, #canvas-media-wrap video { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; transform: scale(1); transform-origin: center; pointer-events: none; display: block; }
-  #canvas-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #2a2a2a; }
-  #canvas-empty .big-plus { font-size: 3rem; }
-  #canvas-empty p { font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; }
-  #canvas-area.drag-over { background: #1a1a1a; }
-  #canvas-area.drag-over #canvas-empty { color: #555; }
+/* FILMSTRIP */
+#fs-wrap { height:108px; background:#4a4a4a; border-top:1px solid #3a3a3a; display:flex; align-items:center; flex-shrink:0; overflow:hidden; }
+#fs { display:flex; gap:8px; padding:10px 14px; overflow-x:auto; height:100%; align-items:center; flex:1; }
+#fs::-webkit-scrollbar { height:3px; }
+#fs::-webkit-scrollbar-thumb { background:#777; border-radius:2px; }
+.th { width:120px; height:80px; flex-shrink:0; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid #666; position:relative; background:#555; transition:border-color .15s; }
+.th:hover { border-color:#999; }
+.th.act { border-color:#fff; }
+.th canvas,.th img,.th video { width:100%; height:100%; object-fit:cover; pointer-events:none; display:block; }
+.th .th-del { position:absolute; top:3px; right:3px; background:rgba(0,0,0,.75); border:none; color:#fff; width:18px; height:18px; border-radius:3px; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2; }
+.th:hover .th-del { display:flex; }
+.th .th-del:hover { background:rgba(200,30,30,.8); }
+.th-add { width:120px; height:80px; flex-shrink:0; border-radius:6px; border:2px dashed #777; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#aaa; font-size:1.2rem; }
+.th-add:hover { border-color:#bbb; color:#fff; }
 
-  /* Filmstrip */
-  #filmstrip-wrap { height: 110px; background: #111; border-top: 1px solid #1e1e1e; display: flex; align-items: center; flex-shrink: 0; overflow: hidden; }
-  #filmstrip { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; height: 100%; align-items: center; flex: 1; scroll-behavior: smooth; }
-  #filmstrip::-webkit-scrollbar { height: 3px; }
-  #filmstrip::-webkit-scrollbar-track { background: #111; }
-  #filmstrip::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-
-  .thumb { width: 130px; height: 82px; flex-shrink: 0; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid #222; position: relative; background: #1a1a1a; transition: border-color 0.15s; }
-  .thumb:hover { border-color: #555; }
-  .thumb.active { border-color: #fff; }
-  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; }
-  .thumb .thumb-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: none; color: #fff; width: 20px; height: 20px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 2; }
-  .thumb:hover .thumb-del { display: flex; }
-  .thumb .thumb-del:hover { background: rgba(220,40,40,0.85); }
-  .thumb .thumb-idx { position: absolute; bottom: 4px; left: 6px; font-size: 0.6rem; color: rgba(255,255,255,0.35); pointer-events: none; }
-
-  .thumb-add { width: 130px; height: 82px; flex-shrink: 0; border-radius: 6px; border: 2px dashed #2a2a2a; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #2a2a2a; font-size: 1.4rem; transition: all 0.15s; }
-  .thumb-add:hover { border-color: #555; color: #555; }
-
-  .warn { background: #191200; border: 1px solid #332800; color: #886622; border-radius: 6px; padding: 10px 16px; font-size: 0.74rem; margin-bottom: 16px; }
+.warn { background:#4a3a00; border:1px solid #6a5000; color:#ffd060; border-radius:6px; padding:9px 14px; font-size:.72rem; margin-bottom:14px; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div id="header">
+<div id="hdr">
   <h1>Portfolio Editor</h1>
-  <input class="token-input" id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
-  <button class="btn primary" onclick="loadPortfolio()">Load</button>
-  <button class="btn green" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
-  <span id="status">Enter token and click Load</span>
+  <input class="inp" id="tok" type="password" placeholder="GitHub Personal Access Token">
+  <button class="btn w" onclick="load()">Load</button>
+  <button class="btn g" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
+  <span id="st">Enter token and click Load</span>
 </div>
 
-<!-- APP -->
 <div id="app">
-
-  <!-- GRID VIEW -->
   <div id="grid-view">
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab(0)">Portfolio 1</div>
-      <div class="tab" onclick="switchTab(1)">Portfolio 2</div>
-    </div>
-    <div class="warn">Files over 25 MB cannot be uploaded via the GitHub API — compress large videos first.</div>
-    <div class="sections-grid" id="sections-grid-0"></div>
-    <div class="sections-grid" id="sections-grid-1" style="display:none"></div>
+    <div class="tabs"><div class="tab active" onclick="switchTab(0)">Portfolio 1</div><div class="tab" onclick="switchTab(1)">Portfolio 2</div></div>
+    <div class="warn">Files over 25 MB can't be uploaded via GitHub API — compress large videos first.</div>
+    <div class="sg" id="sg0"></div>
+    <div class="sg" id="sg1" style="display:none"></div>
   </div>
 
-  <!-- CANVAS EDITOR OVERLAY -->
-  <div id="canvas-editor">
-    <div id="canvas-header">
-      <span class="back-btn" onclick="closeCanvasEditor()">←</span>
-      <span class="canvas-title" id="canvas-title">Gallery</span>
-      <span class="slide-info" id="slide-info"></span>
-      <span class="zoom-display" id="zoom-display">100%</span>
-      <button class="btn" onclick="resetCurrentSlide()">Reset</button>
+  <div id="ce">
+    <div id="ce-hdr">
+      <span class="back" onclick="closeEditor()">←</span>
+      <span id="ce-title">Gallery</span>
+      <span id="slide-lbl"></span>
+      <span class="sep"></span>
+      <button class="btn" id="bgToggle" onclick="toggleCanvasBg()" title="Toggle canvas background">⬛ Black</button>
+      <button class="btn" onclick="resetSel()">Reset layer</button>
+      <button class="btn" onclick="addSlide()">+ Slide</button>
     </div>
-
-    <div id="canvas-area">
-      <div id="canvas-media-wrap"></div>
-      <div id="canvas-empty"><span class="big-plus">+</span><p>Drop or click to add</p></div>
+    <div id="ce-body">
+      <div id="layer-panel">
+        <h2>Layers</h2>
+        <div id="layer-list"></div>
+        <div id="add-layer-btn" onclick="pickFiles()">+ Add image / video</div>
+      </div>
+      <div id="canvas-wrap">
+        <div id="canvas">
+          <div id="sel-box">
+            <div class="rot-line"></div>
+            <div class="rot-handle" id="rot-h"></div>
+            <div class="sel-border"></div>
+            <div class="sel-drag" id="sel-drag"></div>
+            <div class="handle nw" data-h="nw"></div>
+            <div class="handle ne" data-h="ne"></div>
+            <div class="handle se" data-h="se"></div>
+            <div class="handle sw" data-h="sw"></div>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <div id="filmstrip-wrap">
-      <div id="filmstrip"></div>
-    </div>
+    <div id="fs-wrap"><div id="fs"></div></div>
   </div>
-
 </div>
 
 <script>
-const REPO   = 'daniellesasi/Portfolio';
-const BRANCH = 'main';
-const PORTS  = ['a1', 'a2'];
-const N_SECTIONS = 7;
-const BASE   = 'https://daniellesasi.github.io/Portfolio/';
+const REPO='daniellesasi/Portfolio', BRANCH='main', BASE='https://daniellesasi.github.io/Portfolio/';
+const PORTS=['a1','a2'], NB=7;
 
-let token = '', indexSha = '', currentHTML = '';
-let activeTab = 0;
+let token='', idxSha='', idxHTML='';
+// sections[id] = [ { layers:[ {id,type,src,preview,b64,filename,x,y,w,h,rot,z,fit} ] } ]
+let sections={};
+let activeSec=null, activeSlide=0, selId=null;
+let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,orot}
 
-// sections[sectionId] = [ { src, type, posX, posY, scale, base64, filename, preview, deleted } ]
-let sections = {};
-let activeSection = null;
-let activeSlideIdx = 0;
+const $ = id => document.getElementById(id);
+const tok = () => { token=$('tok').value.trim()||localStorage.getItem('gh_t')||''; $('tok').value=token; if(token)localStorage.setItem('gh_t',token); return token; };
+const st = (m,c='') => { $('st').textContent=m; $('st').className=c; };
+const gh = (p,o={}) => fetch(`https://api.github.com/repos/${REPO}/contents/${p}`,{headers:{Authorization:`token ${tok()}`,Accept:'application/vnd.github.v3+json',...o.headers},...o});
 
-// ── AUTH / STATUS ──────────────────────────────────────────────────────────────
-const getToken = () => {
-  token = document.getElementById('tokenInput').value.trim() || localStorage.getItem('gh_token') || '';
-  document.getElementById('tokenInput').value = token;
-  if (token) localStorage.setItem('gh_token', token);
-  return token;
-};
-const setStatus = (msg, cls = '') => { const el = document.getElementById('status'); el.textContent = msg; el.className = cls; };
-
-// ── GITHUB API ─────────────────────────────────────────────────────────────────
-const ghFetch = (path, opts = {}) => fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
-  headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json', ...opts.headers }, ...opts
-});
-
-// ── LOAD ───────────────────────────────────────────────────────────────────────
-async function loadPortfolio() {
-  if (!getToken()) { setStatus('Enter your GitHub token first', 'err'); return; }
-  setStatus('Loading…');
-  try {
-    const res = await ghFetch('index.html');
-    if (!res.ok) throw new Error(res.status === 401 ? 'Invalid token' : 'Could not fetch index.html');
-    const data = await res.json();
-    indexSha = data.sha;
-    currentHTML = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-    parsePortfolio();
-    renderGrid();
-    document.getElementById('saveBtn').disabled = false;
-    setStatus('Loaded ✓', 'ok');
-  } catch(e) { setStatus('Error: ' + e.message, 'err'); }
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+async function load(){
+  if(!tok()){st('Enter token','er');return;}
+  st('Loading…');
+  try{
+    const r=await gh('index.html'); if(!r.ok)throw new Error(r.status===401?'Invalid token':'Fetch failed');
+    const d=await r.json(); idxSha=d.sha;
+    idxHTML=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+    parseHTML(); renderGrid(); $('saveBtn').disabled=false; st('Loaded ✓','ok');
+  }catch(e){st('Error: '+e.message,'er');}
 }
 
-function parsePortfolio() {
-  sections = {};
-  const doc = new DOMParser().parseFromString(currentHTML, 'text/html');
-  PORTS.forEach(port => {
-    for (let b = 1; b <= N_SECTIONS; b++) {
-      const id = `${port}b${b}`;
-      const sec = doc.getElementById(id);
-      const slides = [];
-      if (sec) {
-        sec.querySelectorAll('img, video').forEach(el => {
-          const style = el.getAttribute('style') || '';
-          const pm = style.match(/object-position:\s*([\d.]+)%\s+([\d.]+)%/);
-          const sm = style.match(/scale\(([\d.]+)\)/);
-          slides.push({ src: el.getAttribute('src') || '', type: el.tagName.toLowerCase(), posX: pm ? +pm[1] : 50, posY: pm ? +pm[2] : 50, scale: sm ? +sm[1] : 1 });
+function parseHTML(){
+  sections={};
+  const doc=new DOMParser().parseFromString(idxHTML,'text/html');
+  PORTS.forEach(port=>{
+    for(let b=1;b<=NB;b++){
+      const id=`${port}b${b}`, sec=doc.getElementById(id), slides=[];
+      if(sec){
+        // New structure: .canvas-frame elements
+        sec.querySelectorAll('.canvas-frame').forEach(frame=>{
+          const layers=[];
+          frame.querySelectorAll('img,video').forEach((el,li)=>{
+            const s=el.getAttribute('style')||'';
+            const lx=parseFloat((s.match(/left:([\d.]+)%/)||[,0])[1]);
+            const ly=parseFloat((s.match(/top:([\d.]+)%/)||[,0])[1]);
+            const lw=parseFloat((s.match(/width:([\d.]+)%/)||[,100])[1]);
+            const lh=parseFloat((s.match(/height:([\d.]+)%/)||[,100])[1]);
+            const lr=parseFloat((s.match(/rotate\(([-\d.]+)deg\)/)||[,0])[1]);
+            const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
+            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover'});
+          });
+          slides.push({layers});
         });
+        // Legacy: direct img/video
+        if(!slides.length){
+          sec.querySelectorAll('.horizontal-gallery > img, .horizontal-gallery > video').forEach(el=>{
+            slides.push({layers:[{id:`l${Date.now()+Math.random()}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:0,y:0,w:100,h:100,rot:0,z:1,fit:'cover'}]});
+          });
+        }
       }
-      sections[id] = slides;
+      if(!slides.length) slides.push({layers:[]});
+      sections[id]=slides;
     }
   });
 }
 
-// ── GRID ───────────────────────────────────────────────────────────────────────
-function renderGrid() {
-  PORTS.forEach((port, pi) => {
-    const grid = document.getElementById(`sections-grid-${pi}`);
-    grid.innerHTML = '';
-    for (let b = 1; b <= N_SECTIONS; b++) {
-      const id = `${port}b${b}`;
-      const slides = sections[id] || [];
-      const first = slides.find(s => !s.deleted);
-      const card = document.createElement('div');
-      card.className = 'section-card';
-      card.onclick = () => openCanvasEditor(id);
-      const preview = first
-        ? (first.type === 'video'
-            ? `<video src="${first.preview || BASE + first.src}" muted autoplay loop playsinline></video>`
-            : `<img src="${first.preview || BASE + first.src}">`)
-        : '';
-      const count = slides.filter(s => !s.deleted).length;
-      card.innerHTML = `
-        <div class="preview">
-          ${preview}
-          <span class="count-badge">${count} slide${count !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="card-footer">
-          <span class="card-label">Gallery ${b}</span>
-          <span class="edit-hint">Click to edit →</span>
-        </div>`;
-      grid.appendChild(card);
+// ── GRID ─────────────────────────────────────────────────────────────────────
+function renderGrid(){
+  [0,1].forEach(pi=>{
+    const g=$(`sg${pi}`); g.innerHTML='';
+    for(let b=1;b<=NB;b++){
+      const id=`${PORTS[pi]}b${b}`, slides=sections[id]||[];
+      const first=slides[0]?.layers?.find(l=>l.src||l.preview);
+      const el=document.createElement('div'); el.className='sc'; el.onclick=()=>openEditor(id);
+      const src=first?(first.preview||BASE+first.src):'';
+      const tag=first?.type||'img';
+      const prev=src?`<${tag} src="${src}" ${tag==='video'?'muted autoplay loop playsinline':''}></${tag}>` :'';
+      const count=slides.reduce((a,s)=>a+(s.layers?.length||0),0);
+      el.innerHTML=`<div class="prev">${prev}<span class="badge">${slides.length} slide${slides.length!==1?'s':''} · ${count} layer${count!==1?'s':''}</span></div><div class="foot"><span class="lbl">Gallery ${b}</span><span class="hint">Click to edit →</span></div>`;
+      g.appendChild(el);
     }
   });
 }
-
-function switchTab(i) {
-  activeTab = i;
-  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
-  document.querySelectorAll('.sections-grid').forEach((g, gi) => g.style.display = gi === i ? '' : 'none');
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,ti)=>t.classList.toggle('active',ti===i));
+  $('sg0').style.display=i===0?'':'none'; $('sg1').style.display=i===1?'':'none';
 }
 
-// ── CANVAS EDITOR ──────────────────────────────────────────────────────────────
-function openCanvasEditor(sectionId) {
-  activeSection = sectionId;
-  activeSlideIdx = 0;
-  const bNum = sectionId.match(/b(\d+)/)[1];
-  document.getElementById('canvas-title').textContent = `Gallery ${bNum}`;
-  document.getElementById('canvas-editor').classList.add('open');
-  renderFilmstrip();
-  showSlide(0);
+// ── CANVAS EDITOR ─────────────────────────────────────────────────────────────
+function openEditor(id){
+  activeSec=id; activeSlide=0; selId=null;
+  const b=id.match(/b(\d+)/)[1];
+  $('ce-title').textContent=`Gallery ${b}`;
+  $('ce').classList.add('open');
+  positionCanvas();
+  renderFilmstrip(); showSlide(0); renderLayers();
+}
+function closeEditor(){ $('ce').classList.remove('open'); hideSel(); renderGrid(); }
+
+function positionCanvas(){
+  const wrap=$('canvas-wrap'), c=$('canvas');
+  const ww=wrap.clientWidth, wh=wrap.clientHeight;
+  const aspect=16/9;
+  let cw,ch;
+  if(ww/wh>aspect){ch=wh*.92;cw=ch*aspect;}else{cw=ww*.92;ch=cw/aspect;}
+  cw=Math.floor(cw); ch=Math.floor(ch);
+  c.style.width=cw+'px'; c.style.height=ch+'px';
+  c.style.left=Math.floor((ww-cw)/2)+'px'; c.style.top=Math.floor((wh-ch)/2)+'px';
 }
 
-function closeCanvasEditor() {
-  document.getElementById('canvas-editor').classList.remove('open');
-  renderGrid();
-}
-
-function renderFilmstrip() {
-  const strip = document.getElementById('filmstrip');
-  strip.innerHTML = '';
-  const slides = sections[activeSection] || [];
-  slides.forEach((slide, i) => {
-    if (slide.deleted) return;
-    strip.appendChild(buildThumb(slide, i));
+function renderFilmstrip(){
+  const fs=$('fs'); fs.innerHTML='';
+  const slides=sections[activeSec]||[];
+  slides.forEach((slide,i)=>{
+    const th=document.createElement('div'); th.className='th'+(i===activeSlide?' act':''); th.dataset.i=i;
+    const first=slide.layers?.find(l=>l.src||l.preview);
+    if(first){const src=first.preview||BASE+first.src; const el=document.createElement(first.type); el.src=src; if(first.type==='video'){el.muted=true;el.autoplay=true;el.loop=true;} th.appendChild(el);}
+    th.innerHTML+=`<button class="th-del" onclick="delSlide(event,${i})">✕</button>`;
+    th.onclick=e=>{if(!e.target.classList.contains('th-del'))showSlide(i);};
+    fs.appendChild(th);
   });
-  const addThumb = document.createElement('div');
-  addThumb.className = 'thumb-add';
-  addThumb.innerHTML = '+';
-  addThumb.onclick = () => triggerFilePicker();
-  // Drop onto add thumb
-  addThumb.addEventListener('dragover', e => { e.preventDefault(); addThumb.style.borderColor = '#fff'; });
-  addThumb.addEventListener('dragleave', () => addThumb.style.borderColor = '');
-  addThumb.addEventListener('drop', e => { e.preventDefault(); addThumb.style.borderColor = ''; handleFiles(e.dataTransfer.files); });
-  strip.appendChild(addThumb);
+  const add=document.createElement('div'); add.className='th-add'; add.innerHTML='+';
+  add.onclick=addSlide; fs.appendChild(add);
 }
 
-function buildThumb(slide, idx) {
-  const thumb = document.createElement('div');
-  thumb.className = 'thumb' + (idx === activeSlideIdx ? ' active' : '');
-  thumb.dataset.idx = idx;
-  const src = slide.preview || (slide.src ? BASE + slide.src : '');
-  if (src) {
-    const el = document.createElement(slide.type);
-    el.src = src;
-    if (slide.type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; }
-    thumb.appendChild(el);
+function showSlide(i){
+  const slides=sections[activeSec]||[];
+  i=Math.max(0,Math.min(slides.length-1,i));
+  activeSlide=i; selId=null; hideSel();
+  $('slide-lbl').textContent=`Slide ${i+1} / ${slides.length}`;
+  const c=$('canvas');
+  // Remove all media layers (keep sel-box)
+  Array.from(c.querySelectorAll('[data-lid]')).forEach(el=>el.remove());
+  const slide=slides[i];
+  if(slide?.layers) slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>c.appendChild(buildLayerEl(layer)));
+  // update filmstrip highlight
+  document.querySelectorAll('.th').forEach((t,ti)=>t.classList.toggle('act',ti===i));
+}
+
+function buildLayerEl(layer){
+  const wrap=document.createElement('div');
+  wrap.dataset.lid=layer.id;
+  wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;`;
+  if(layer.id===selId) wrap.style.outline='2px solid #00cc66';
+  const media=document.createElement(layer.type);
+  const src=layer.preview||layer.src;
+  if(src) media.src=src.startsWith('data:')?src:BASE+src;
+  media.style.cssText=`width:100%;height:100%;object-fit:${layer.fit||'cover'};pointer-events:none;display:block;`;
+  if(layer.type==='video'){media.muted=true;media.autoplay=true;media.loop=true;}
+  wrap.appendChild(media);
+  wrap.addEventListener('mousedown',e=>{e.stopPropagation();selectLayer(layer.id,e);});
+  return wrap;
+}
+
+function renderLayers(){
+  const list=$('layer-list'); list.innerHTML='';
+  const slide=sections[activeSec]?.[activeSlide];
+  if(!slide?.layers?.length){list.innerHTML='<div style="padding:12px;font-size:.68rem;color:#2a2a2a;text-align:center;">No layers yet</div>';return;}
+  [...slide.layers].reverse().forEach(layer=>{
+    const item=document.createElement('div'); item.className='layer-item'+(layer.id===selId?' sel':''); item.dataset.lid=layer.id;
+    const src=layer.preview||layer.src;
+    const thumbHTML=src?`<div class="li-thumb"><${layer.type} src="${src.startsWith('data:')?src:BASE+src}" ${layer.type==='video'?'muted autoplay loop':''}></${layer.type}></div>`:'<div class="li-thumb"></div>';
+    item.innerHTML=`${thumbHTML}<span class="li-name">${layer.filename||layer.src||'Layer'}</span><span class="li-del" onclick="delLayer(event,'${layer.id}')">✕</span>`;
+    item.onclick=e=>{if(!e.target.classList.contains('li-del'))selectLayerById(layer.id);};
+    list.appendChild(item);
+  });
+}
+
+// ── SELECTION & TRANSFORM ─────────────────────────────────────────────────────
+function selectLayer(lid,e){
+  selId=lid; renderLayers();
+  const c=$('canvas'), wrap=c.querySelector(`[data-lid="${lid}"]`);
+  if(!wrap){hideSel();return;}
+  const layer=getLayer(lid);
+  updateSelBox(layer);
+  $('sel-box').style.display='block';
+}
+function selectLayerById(lid){ selId=lid; renderLayers(); const layer=getLayer(lid); if(layer)updateSelBox(layer); $('sel-box').style.display=selId?'block':'none'; showSlide(activeSlide); }
+
+function getLayer(lid){ return sections[activeSec]?.[activeSlide]?.layers?.find(l=>l.id===lid); }
+
+function updateSelBox(layer){
+  const c=$('canvas'), sb=$('sel-box');
+  const cw=c.clientWidth, ch=c.clientHeight;
+  const px=layer.x/100*cw, py=layer.y/100*ch;
+  const pw=layer.w/100*cw, ph=layer.h/100*ch;
+  sb.style.cssText=`left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;transform:rotate(${layer.rot}deg);transform-origin:top left;display:block;position:absolute;z-index:1000;`;
+}
+
+function hideSel(){ $('sel-box').style.display='none'; selId=null; }
+
+// Drag interactions
+const canvas=$('canvas');
+canvas.addEventListener('mousedown',e=>{
+  if(e.target===canvas||e.target.id==='canvas'){hideSel();renderLayers();return;}
+  if(e.target.id==='sel-drag'||e.target.dataset.lid){
+    const layer=getLayer(selId); if(!layer)return;
+    drag={type:'move',sx:e.clientX,sy:e.clientY,ox:layer.x,oy:layer.y}; e.preventDefault();
   }
-  thumb.innerHTML += `<button class="thumb-del" onclick="deleteSlide(event,${idx})">✕</button><span class="thumb-idx">${idx + 1}</span>`;
-  thumb.addEventListener('click', e => { if (!e.target.classList.contains('thumb-del')) showSlide(idx); });
-  return thumb;
-}
-
-function showSlide(idx) {
-  const slides = (sections[activeSection] || []).filter(s => !s.deleted);
-  if (!slides.length) {
-    document.getElementById('canvas-media-wrap').innerHTML = '';
-    document.getElementById('canvas-empty').style.display = 'flex';
-    document.getElementById('slide-info').textContent = 'No slides';
-    return;
-  }
-  idx = Math.max(0, Math.min(slides.length - 1, idx));
-
-  // Map to real index in sections array
-  let realIdx = -1, count = 0;
-  (sections[activeSection] || []).forEach((s, i) => { if (!s.deleted) { if (count === idx) realIdx = i; count++; } });
-  activeSlideIdx = realIdx;
-
-  const slide = sections[activeSection][realIdx];
-  const src = slide.preview || (slide.src ? BASE + slide.src : '');
-  const wrap = document.getElementById('canvas-media-wrap');
-  wrap.innerHTML = '';
-  document.getElementById('canvas-empty').style.display = 'none';
-
-  if (src) {
-    const el = document.createElement(slide.type);
-    el.src = src;
-    if (slide.type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true; }
-    el.style.objectPosition = `${slide.posX}% ${slide.posY}%`;
-    el.style.transform = `scale(${slide.scale})`;
-    wrap.appendChild(el);
-  }
-
-  document.getElementById('slide-info').textContent = `${idx + 1} / ${slides.length}`;
-  document.getElementById('zoom-display').textContent = `${Math.round((slide.scale || 1) * 100)}%`;
-
-  // Update filmstrip highlight
-  document.querySelectorAll('.thumb').forEach((t, ti) => t.classList.toggle('active', +t.dataset.idx === realIdx));
-}
-
-function deleteSlide(e, idx) {
-  e.stopPropagation();
-  if (!confirm('Remove this slide?')) return;
-  sections[activeSection][idx].deleted = true;
-  const visIdx = sections[activeSection].slice(0, idx).filter(s => !s.deleted).length;
-  renderFilmstrip();
-  showSlide(Math.max(0, visIdx - 1));
-}
-
-function resetCurrentSlide() {
-  const slide = sections[activeSection]?.[activeSlideIdx];
-  if (!slide) return;
-  slide.posX = 50; slide.posY = 50; slide.scale = 1; slide.modified = true;
-  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
-  if (el) { el.style.objectPosition = '50% 50%'; el.style.transform = 'scale(1)'; }
-  document.getElementById('zoom-display').textContent = '100%';
-}
-
-// ── PAN / ZOOM ─────────────────────────────────────────────────────────────────
-let pan = { active: false, ox: 0, oy: 0 };
-const canvasArea = document.getElementById('canvas-area');
-
-canvasArea.addEventListener('mousedown', e => {
-  if (e.target.closest('#canvas-empty')) return;
-  pan.active = true; pan.ox = e.clientX; pan.oy = e.clientY;
-  canvasArea.classList.add('grabbing');
 });
 
-document.addEventListener('mousemove', e => {
-  if (!pan.active) return;
-  const slide = sections[activeSection]?.[activeSlideIdx];
-  if (!slide) return;
-  const dx = e.clientX - pan.ox, dy = e.clientY - pan.oy;
-  pan.ox = e.clientX; pan.oy = e.clientY;
-  slide.posX = Math.max(0, Math.min(100, slide.posX - dx * 0.15));
-  slide.posY = Math.max(0, Math.min(100, slide.posY - dy * 0.15));
-  slide.modified = true;
-  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
-  if (el) el.style.objectPosition = `${slide.posX.toFixed(1)}% ${slide.posY.toFixed(1)}%`;
+document.querySelectorAll('.handle').forEach(h=>{
+  h.addEventListener('mousedown',e=>{
+    const layer=getLayer(selId); if(!layer)return;
+    drag={type:'resize',handle:h.dataset.h,sx:e.clientX,sy:e.clientY,ox:layer.x,oy:layer.y,ow:layer.w,oh:layer.h}; e.preventDefault(); e.stopPropagation();
+  });
 });
 
-document.addEventListener('mouseup', () => { pan.active = false; canvasArea.classList.remove('grabbing'); });
+$('rot-h').addEventListener('mousedown',e=>{
+  const layer=getLayer(selId); if(!layer)return;
+  const c=canvas, sb=$('sel-box');
+  const cr=c.getBoundingClientRect(), sr=sb.getBoundingClientRect();
+  const cx=(sr.left+sr.right)/2, cy=(sr.top+sr.bottom)/2;
+  drag={type:'rotate',cx,cy,orot:layer.rot}; e.preventDefault(); e.stopPropagation();
+});
 
-canvasArea.addEventListener('wheel', e => {
-  e.preventDefault();
-  const slide = sections[activeSection]?.[activeSlideIdx];
-  if (!slide) return;
-  slide.scale = Math.max(0.3, Math.min(5, slide.scale + (e.deltaY < 0 ? 0.04 : -0.04)));
-  slide.modified = true;
-  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
-  if (el) el.style.transform = `scale(${slide.scale.toFixed(3)})`;
-  document.getElementById('zoom-display').textContent = `${Math.round(slide.scale * 100)}%`;
-}, { passive: false });
+document.addEventListener('mousemove',e=>{
+  if(!drag) return;
+  const layer=getLayer(selId); if(!layer)return;
+  const c=canvas, cw=c.clientWidth, ch=c.clientHeight;
+  const cr=c.getBoundingClientRect();
+  const dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+  const dxp=dx/cw*100, dyp=dy/ch*100;
+
+  if(drag.type==='move'){
+    layer.x=Math.round((drag.ox+dxp)*10)/10;
+    layer.y=Math.round((drag.oy+dyp)*10)/10;
+  } else if(drag.type==='resize'){
+    const h=drag.handle;
+    if(h==='se'){layer.w=Math.max(5,Math.round((drag.ow+dxp)*10)/10);layer.h=Math.max(5,Math.round((drag.oh+dyp)*10)/10);}
+    else if(h==='sw'){const nw=Math.max(5,drag.ow-dxp);layer.x=drag.ox+(drag.ow-nw);layer.w=nw;layer.h=Math.max(5,Math.round((drag.oh+dyp)*10)/10);}
+    else if(h==='ne'){layer.w=Math.max(5,Math.round((drag.ow+dxp)*10)/10);const nh=Math.max(5,drag.oh-dyp);layer.y=drag.oy+(drag.oh-nh);layer.h=nh;}
+    else if(h==='nw'){const nw=Math.max(5,drag.ow-dxp);layer.x=drag.ox+(drag.ow-nw);layer.w=nw;const nh=Math.max(5,drag.oh-dyp);layer.y=drag.oy+(drag.oh-nh);layer.h=nh;}
+  } else if(drag.type==='rotate'){
+    const angle=Math.atan2(e.clientY-drag.cy,e.clientX-drag.cx)*180/Math.PI+90;
+    layer.rot=Math.round(angle);
+  }
+
+  // Update DOM without full re-render
+  const wrap=canvas.querySelector(`[data-lid="${selId}"]`);
+  if(wrap) wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;`;
+  updateSelBox(layer);
+});
+
+document.addEventListener('mouseup',()=>drag=null);
 
 // Drop files onto canvas
-canvasArea.addEventListener('dragover', e => { e.preventDefault(); canvasArea.classList.add('drag-over'); });
-canvasArea.addEventListener('dragleave', e => { if (!canvasArea.contains(e.relatedTarget)) canvasArea.classList.remove('drag-over'); });
-canvasArea.addEventListener('drop', e => { e.preventDefault(); canvasArea.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
-canvasArea.querySelector('#canvas-empty').addEventListener('click', () => triggerFilePicker());
+canvas.addEventListener('dragover',e=>e.preventDefault());
+canvas.addEventListener('drop',e=>{e.preventDefault();addFilesToSlide(e.dataTransfer.files);});
 
-// ── FILE HANDLING ──────────────────────────────────────────────────────────────
-function triggerFilePicker(multi = true) {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*,video/*'; input.multiple = multi;
-  input.onchange = () => handleFiles(input.files);
-  input.click();
+function resetSel(){
+  const layer=getLayer(selId); if(!layer)return;
+  layer.x=0;layer.y=0;layer.w=100;layer.h=100;layer.rot=0;
+  showSlide(activeSlide); updateSelBox(layer);
 }
 
-function handleFiles(files) {
-  Array.from(files).forEach(file => {
-    if (file.size > 25 * 1024 * 1024) { setStatus(`${file.name} is too large (${(file.size/1024/1024).toFixed(0)}MB). Max 25MB.`, 'err'); return; }
-    const ext = file.name.split('.').pop().toLowerCase();
-    const slides = sections[activeSection];
-    const nextC = slides.length + 1;
-    const filename = `${activeSection}c${nextC}.${ext}`;
-    const isVideo = file.type.startsWith('video');
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const slide = { src: '', type: isVideo ? 'video' : 'img', posX: 50, posY: 50, scale: 1, base64: ev.target.result.split(',')[1], filename, preview: ev.target.result, modified: true };
-      sections[activeSection].push(slide);
-      renderFilmstrip();
-      showSlide(sections[activeSection].filter(s => !s.deleted).length - 1);
-      setStatus(`${filename} added`, 'ok');
+// ── FILE / LAYER MANAGEMENT ───────────────────────────────────────────────────
+function pickFiles(){ const i=document.createElement('input'); i.type='file'; i.accept='image/*,video/*'; i.multiple=true; i.onchange=()=>addFilesToSlide(i.files); i.click(); }
+
+function addFilesToSlide(files){
+  const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
+  Array.from(files).forEach(file=>{
+    if(file.size>25*1024*1024){st(`${file.name} too large (max 25MB)`,'er');return;}
+    const ext=file.name.split('.').pop().toLowerCase();
+    const slides=sections[activeSec];
+    // find unused c index
+    let cIdx=1; slides.forEach(sl=>sl.layers.forEach(l=>{const m=l.filename?.match(/c(\d+)\./);if(m)cIdx=Math.max(cIdx,+m[1]+1);}));
+    const fname=`${activeSec}c${cIdx}.${ext}`;
+    const isVid=file.type.startsWith('video');
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const layer={id:`l${Date.now()}`,type:isVid?'video':'img',src:'',preview:ev.target.result,b64:ev.target.result.split(',')[1],filename:fname,x:10,y:10,w:80,h:80,rot:0,z:(slide.layers.length||0)+1,fit:'cover'};
+      slide.layers.push(layer);
+      showSlide(activeSlide); renderLayers();
+      selectLayerById(layer.id);
+      st(`${fname} added`,'ok');
     };
     reader.readAsDataURL(file);
   });
 }
 
-// ── SAVE ───────────────────────────────────────────────────────────────────────
-async function saveAll() {
-  if (!getToken()) { setStatus('No token', 'err'); return; }
-  document.getElementById('saveBtn').disabled = true;
-
-  const uploads = [];
-  Object.values(sections).forEach(slides => slides.forEach(s => { if (s.base64) uploads.push(s); }));
-
-  let done = 0;
-  for (const s of uploads) {
-    setStatus(`Uploading ${s.filename} (${++done}/${uploads.length})…`);
-    try {
-      const ex = await ghFetch(s.filename);
-      const sha = ex.ok ? (await ex.json()).sha : undefined;
-      const body = { message: `Upload ${s.filename}`, content: s.base64, branch: BRANCH };
-      if (sha) body.sha = sha;
-      const res = await ghFetch(s.filename, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(await res.text());
-      s.src = s.filename; delete s.base64;
-    } catch(e) { setStatus('Upload failed: ' + e.message, 'err'); document.getElementById('saveBtn').disabled = false; return; }
-  }
-
-  setStatus('Updating index.html…');
-  try {
-    await pushIndexHTML();
-    setStatus(`✓ Saved ${uploads.length} file(s)`, 'ok');
-  } catch(e) { setStatus('index.html update failed: ' + e.message, 'err'); }
-  document.getElementById('saveBtn').disabled = false;
-  renderGrid();
+function delLayer(e,lid){
+  e.stopPropagation();
+  const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
+  slide.layers=slide.layers.filter(l=>l.id!==lid);
+  if(selId===lid){hideSel();}
+  showSlide(activeSlide); renderLayers();
 }
 
-async function pushIndexHTML() {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(currentHTML, 'text/html');
+function addSlide(){
+  sections[activeSec].push({layers:[]});
+  renderFilmstrip(); showSlide(sections[activeSec].length-1); renderLayers();
+}
 
-  Object.entries(sections).forEach(([id, slides]) => {
-    const section = doc.getElementById(id);
-    if (!section) return;
-    const gallery = section.querySelector('.horizontal-gallery');
-    if (!gallery) return;
-    gallery.innerHTML = '\n                    ';
-    slides.filter(s => !s.deleted).forEach(s => {
-      const el = doc.createElement(s.type);
-      el.setAttribute('src', s.filename || s.src);
-      const style = `object-position: ${s.posX.toFixed(1)}% ${s.posY.toFixed(1)}%; transform: scale(${s.scale.toFixed(3)});`;
-      el.setAttribute('style', style);
-      if (s.type === 'video') { el.setAttribute('autoplay',''); el.setAttribute('loop',''); el.setAttribute('muted',''); el.setAttribute('playsinline',''); }
-      else { el.setAttribute('loading','lazy'); el.setAttribute('alt',''); }
-      gallery.appendChild(el);
-      gallery.appendChild(doc.createTextNode('\n                    '));
+function delSlide(e,i){
+  e.stopPropagation();
+  if(sections[activeSec].length<=1)return;
+  if(!confirm('Delete this slide?'))return;
+  sections[activeSec].splice(i,1);
+  renderFilmstrip(); showSlide(Math.min(i,sections[activeSec].length-1)); renderLayers();
+}
+
+// ── SAVE ─────────────────────────────────────────────────────────────────────
+async function saveAll(){
+  if(!tok()){st('No token','er');return;}
+  $('saveBtn').disabled=true;
+  // Collect all layers with b64
+  const uploads=[]; Object.values(sections).forEach(slides=>slides.forEach(sl=>sl.layers.forEach(l=>{if(l.b64)uploads.push(l);})));
+  let done=0;
+  for(const l of uploads){
+    st(`Uploading ${l.filename} (${++done}/${uploads.length})…`);
+    try{
+      const ex=await gh(l.filename); const sha=ex.ok?(await ex.json()).sha:undefined;
+      const body={message:`Upload ${l.filename}`,content:l.b64,branch:BRANCH}; if(sha)body.sha=sha;
+      const res=await gh(l.filename,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!res.ok)throw new Error(await res.text());
+      l.src=l.filename; delete l.b64;
+    }catch(e){st('Upload failed: '+e.message,'er');$('saveBtn').disabled=false;return;}
+  }
+  st('Updating index.html…');
+  try{ await pushHTML(); st(`✓ ${done} file(s) saved`,'ok');}
+  catch(e){st('index.html failed: '+e.message,'er');}
+  $('saveBtn').disabled=false; renderGrid();
+}
+
+async function pushHTML(){
+  const doc=new DOMParser().parseFromString(idxHTML,'text/html');
+  Object.entries(sections).forEach(([id,slides])=>{
+    const sec=doc.getElementById(id); if(!sec)return;
+    const gal=sec.querySelector('.horizontal-gallery'); if(!gal)return;
+    gal.innerHTML='\n                    ';
+    slides.forEach(slide=>{
+      if(!slide.layers?.length)return;
+      const frame=doc.createElement('div'); frame.className='canvas-frame';
+      slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
+        const el=doc.createElement(layer.type);
+        el.setAttribute('src',layer.filename||layer.src);
+        el.setAttribute('style',`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`);
+        if(layer.type==='video'){el.setAttribute('autoplay','');el.setAttribute('loop','');el.setAttribute('muted','');el.setAttribute('playsinline','');}
+        else{el.setAttribute('loading','lazy');el.setAttribute('alt','');}
+        frame.appendChild(el);
+      });
+      gal.appendChild(frame);
+      gal.appendChild(doc.createTextNode('\n                    '));
     });
   });
-
-  const newHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-  const encoded = btoa(unescape(encodeURIComponent(newHTML)));
-  const res = await ghFetch('index.html', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Update portfolio', content: encoded, sha: indexSha, branch: BRANCH }) });
-  if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  indexSha = data.content.sha;
-  currentHTML = newHTML;
+  const html='<!DOCTYPE html>\n'+doc.documentElement.outerHTML;
+  const enc=btoa(unescape(encodeURIComponent(html)));
+  const res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha:idxSha,branch:BRANCH})});
+  if(!res.ok)throw new Error(await res.text());
+  const d=await res.json(); idxSha=d.content.sha; idxHTML=html;
 }
 
-window.onload = () => { const t = localStorage.getItem('gh_token'); if (t) document.getElementById('tokenInput').value = t; };
+function toggleCanvasBg(){
+  const c=$('canvas'), btn=$('bgToggle');
+  const isWhite=c.classList.toggle('bg-white');
+  btn.textContent=isWhite?'⬜ White':'⬛ Black';
+}
+
+window.addEventListener('resize',()=>{ positionCanvas(); if(selId){const l=getLayer(selId);if(l)updateSelBox(l);} });
+window.onload=()=>{ const t=localStorage.getItem('gh_t'); if(t)$('tok').value=t; };
 </script>
 </body>
 </html>
