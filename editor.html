@@ -8,46 +8,69 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; min-height: 100vh; }
 
-  header { background: #1a1a1a; padding: 20px 30px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #333; flex-wrap: wrap; }
-  header h1 { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; color: #888; flex: 1; }
-  header input { background: #2a2a2a; border: 1px solid #444; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; width: 320px; }
-  header input::placeholder { color: #555; }
-  header button { background: #fff; color: #000; border: none; padding: 8px 20px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; white-space: nowrap; }
-  header button:hover { background: #ddd; }
-  header button.save { background: #0f0; }
-  header button.save:hover { background: #0c0; }
-  header button:disabled { background: #444; color: #888; cursor: not-allowed; }
-  #status { font-size: 0.8rem; color: #888; }
-  #status.ok { color: #0f0; }
-  #status.err { color: #f44; }
+  header { background: #1a1a1a; padding: 16px 30px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; }
+  header h1 { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: #555; flex: 1; }
+  header input { background: #2a2a2a; border: 1px solid #3a3a3a; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.82rem; width: 300px; }
+  header input::placeholder { color: #444; }
+  .btn { background: #2a2a2a; color: #fff; border: 1px solid #3a3a3a; padding: 8px 18px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; }
+  .btn:hover { background: #333; }
+  .btn.primary { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+  .btn.primary:hover { background: #ddd; }
+  .btn.green { background: #00cc44; color: #000; border-color: #00cc44; font-weight: 600; }
+  .btn.green:hover { background: #00aa33; }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  #status { font-size: 0.78rem; color: #555; min-width: 200px; }
+  #status.ok { color: #00cc44; }
+  #status.err { color: #ff4444; }
 
-  .tabs { display: flex; gap: 2px; padding: 20px 30px 0; }
-  .tab { padding: 10px 24px; background: #222; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 0.85rem; color: #888; }
-  .tab.active { background: #2a2a2a; color: #fff; }
+  .tabs { display: flex; gap: 1px; padding: 24px 30px 0; }
+  .tab { padding: 8px 22px; background: #1a1a1a; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.8rem; color: #555; border: 1px solid #2a2a2a; border-bottom: none; }
+  .tab.active { background: #1e1e1e; color: #fff; }
 
-  #editor { padding: 0 30px 40px; }
-  .portfolio-grid { background: #2a2a2a; border-radius: 0 12px 12px 12px; padding: 24px; display: none; }
+  #editor { padding: 0 30px 60px; }
+  .portfolio-grid { background: #1e1e1e; border-radius: 0 12px 12px 12px; padding: 30px; display: none; border: 1px solid #2a2a2a; border-top: none; }
   .portfolio-grid.active { display: block; }
 
-  .section-row { margin-bottom: 24px; }
-  .section-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-bottom: 10px; }
-  .slots { display: flex; gap: 10px; flex-wrap: wrap; }
+  .section-row { margin-bottom: 30px; }
+  .section-label { font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; color: #444; margin-bottom: 12px; }
+  .slots { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
 
-  .slot { width: 160px; height: 100px; background: #1a1a1a; border: 2px dashed #444; border-radius: 8px; position: relative; cursor: pointer; overflow: hidden; flex-shrink: 0; transition: border-color 0.2s; }
-  .slot:hover { border-color: #888; }
-  .slot.dragover { border-color: #fff; background: #222; }
-  .slot.filled { border-style: solid; border-color: #555; }
-  .slot.changed { border-color: #0f0; }
+  /* SLOT */
+  .slot { width: 220px; height: 140px; background: #111; border: 2px dashed #2a2a2a; border-radius: 8px; position: relative; overflow: hidden; flex-shrink: 0; transition: border-color 0.15s; }
+  .slot.empty:hover { border-color: #444; }
+  .slot.filled { border-style: solid; border-color: #333; cursor: grab; }
+  .slot.filled:active { cursor: grabbing; }
+  .slot.changed { border-color: #00cc44; }
+  .slot.dragover { border-color: #fff !important; background: #1a1a1a; }
 
-  .slot img, .slot video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .slot .plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #444; }
-  .slot .label { position: absolute; bottom: 4px; left: 6px; font-size: 0.6rem; color: rgba(255,255,255,0.5); }
-  .slot .remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 0.65rem; cursor: pointer; display: none; align-items: center; justify-content: center; }
-  .slot:hover .remove { display: flex; }
-  .slot.new-slot { border-color: #333; }
-  .slot.new-slot .plus { color: #333; }
+  .slot .media-wrap { width: 100%; height: 100%; overflow: hidden; position: relative; }
+  .slot .media-wrap img,
+  .slot .media-wrap video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; transform-origin: center center; }
 
-  .warning { background: #332200; border: 1px solid #664400; border-radius: 8px; padding: 12px 16px; font-size: 0.8rem; color: #ffaa44; margin-bottom: 20px; }
+  /* Empty state */
+  .slot .empty-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+  .slot .empty-inner .plus-icon { font-size: 1.6rem; color: #333; }
+  .slot .empty-inner .drop-hint { font-size: 0.6rem; color: #333; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Controls overlay */
+  .slot-controls { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); opacity: 0; transition: opacity 0.15s; pointer-events: none; z-index: 10; }
+  .slot:hover .slot-controls { opacity: 1; pointer-events: all; }
+  .slot-controls .slot-id { font-size: 0.58rem; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
+  .slot-controls .ctrl-btns { display: flex; gap: 4px; }
+  .ctrl-btn { background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 22px; height: 22px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+  .ctrl-btn.del:hover { background: rgba(255, 60, 60, 0.7); }
+
+  .zoom-hint { position: absolute; bottom: 6px; right: 8px; font-size: 0.55rem; color: rgba(255,255,255,0.3); pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+  .slot.filled:hover .zoom-hint { opacity: 1; }
+
+  /* Add slot */
+  .slot.add-slot { border: 2px dashed #222; cursor: pointer; }
+  .slot.add-slot:hover { border-color: #444; }
+  .slot.add-slot .empty-inner .plus-icon { color: #2a2a2a; }
+  .slot.add-slot:hover .empty-inner .plus-icon { color: #444; }
+
+  .warning-bar { background: #1a1100; border: 1px solid #332200; border-radius: 6px; padding: 10px 14px; font-size: 0.75rem; color: #886600; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -55,9 +78,9 @@
 <header>
   <h1>Portfolio Editor</h1>
   <input id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
-  <button onclick="loadPortfolio()">Load</button>
-  <button class="save" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
-  <span id="status"></span>
+  <button class="btn primary" onclick="loadPortfolio()">Load</button>
+  <button class="btn green" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
+  <span id="status">Enter token and click Load</span>
 </header>
 
 <div class="tabs">
@@ -75,17 +98,19 @@ const REPO = 'daniellesasi/Portfolio';
 const BRANCH = 'main';
 const PORTFOLIOS = ['a1', 'a2'];
 const SECTIONS = 7;
+const BASE_URL = 'https://daniellesasi.github.io/Portfolio/';
 
-let token = '';
-let state = {}; // { 'a1b1c1': { file, preview, sha } }
+// state[id] = { file, filename, base64, fileType, preview, posX, posY, scale, deleted, modified }
+let state = {};
 let indexSha = '';
-let currentIndex = '';
-let activeTab = 0;
+let currentIndexHTML = '';
+let token = '';
 
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 function getToken() {
-  token = document.getElementById('tokenInput').value.trim();
-  if (!token) { token = localStorage.getItem('gh_token') || ''; document.getElementById('tokenInput').value = token; }
-  else { localStorage.setItem('gh_token', token); }
+  token = document.getElementById('tokenInput').value.trim() || localStorage.getItem('gh_token') || '';
+  document.getElementById('tokenInput').value = token;
+  if (token) localStorage.setItem('gh_token', token);
   return token;
 }
 
@@ -95,23 +120,25 @@ function setStatus(msg, type = '') {
   el.className = type;
 }
 
+// ─── GITHUB API ────────────────────────────────────────────────────────────────
 async function ghFetch(path, opts = {}) {
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+  return fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json', ...opts.headers },
     ...opts
   });
-  return res;
 }
 
+// ─── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadPortfolio() {
   if (!getToken()) { setStatus('Enter your GitHub token first', 'err'); return; }
-  setStatus('Loading...');
+  setStatus('Loading…');
   try {
     const res = await ghFetch('index.html');
-    if (!res.ok) throw new Error('Could not load index.html');
+    if (!res.ok) throw new Error(res.status === 401 ? 'Invalid token' : 'Could not load index.html');
     const data = await res.json();
     indexSha = data.sha;
-    currentIndex = atob(data.content.replace(/\n/g, ''));
+    currentIndexHTML = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+    state = {};
     renderGrids();
     document.getElementById('saveBtn').disabled = false;
     setStatus('Loaded ✓', 'ok');
@@ -120,264 +147,325 @@ async function loadPortfolio() {
   }
 }
 
+// ─── RENDER ────────────────────────────────────────────────────────────────────
 function renderGrids() {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(currentIndex, 'text/html');
-
+  const doc = parser.parseFromString(currentIndexHTML, 'text/html');
   PORTFOLIOS.forEach((port, pi) => {
     const grid = document.getElementById(`grid-${pi}`);
-    grid.innerHTML = '';
-    grid.innerHTML += `<div class="warning">⚠️ Files over 25 MB can't be uploaded via the API — compress videos first. Images and small videos work directly.</div>`;
-
+    grid.innerHTML = `<div class="warning-bar">Drag & drop files onto slots • Drag filled slots to pan • Scroll to zoom • Max 25 MB per file</div>`;
     for (let b = 1; b <= SECTIONS; b++) {
-      const sectionId = `${port}b${b}`;
-      const section = doc.getElementById(sectionId);
+      const sId = `${port}b${b}`;
+      const section = doc.getElementById(sId);
       const row = document.createElement('div');
       row.className = 'section-row';
       row.innerHTML = `<div class="section-label">Gallery ${b}</div>`;
-      const slots = document.createElement('div');
-      slots.className = 'slots';
-      slots.dataset.section = sectionId;
-
+      const slotsEl = document.createElement('div');
+      slotsEl.className = 'slots';
+      slotsEl.dataset.section = sId;
       const media = section ? Array.from(section.querySelectorAll('img, video')) : [];
       media.forEach((el, ci) => {
-        const cId = `${sectionId}c${ci + 1}`;
-        const src = el.getAttribute('src');
-        slots.appendChild(createSlot(cId, src, el.tagName.toLowerCase(), false));
+        const cId = `${sId}c${ci + 1}`;
+        const src = el.getAttribute('src') || '';
+        const style = el.getAttribute('style') || '';
+        const posMatch = style.match(/object-position:\s*([^;]+)/);
+        const scaleMatch = style.match(/scale\(([\d.]+)\)/);
+        state[cId] = state[cId] || {
+          src, fileType: el.tagName.toLowerCase(),
+          posX: posMatch ? parseFloat(posMatch[1]) : 50,
+          posY: posMatch ? parseFloat(posMatch[1].split(' ')[1] || 50) : 50,
+          scale: scaleMatch ? parseFloat(scaleMatch[1]) : 1,
+          existing: true
+        };
+        slotsEl.appendChild(buildSlot(cId, BASE_URL + src, el.tagName.toLowerCase()));
       });
-
-      // "Add" slot
-      slots.appendChild(createAddSlot(sectionId, media.length + 1));
-      row.appendChild(slots);
+      slotsEl.appendChild(buildAddSlot(sId, media.length + 1));
+      row.appendChild(slotsEl);
       grid.appendChild(row);
     }
   });
 }
 
-function createSlot(id, src, type, isNew) {
+// ─── SLOT BUILDER ──────────────────────────────────────────────────────────────
+function buildSlot(id, src, type) {
   const slot = document.createElement('div');
-  slot.className = `slot ${src ? 'filled' : ''} ${isNew ? 'new-slot' : ''}`;
+  slot.className = 'slot filled';
   slot.dataset.id = id;
 
-  if (src && !state[id]) {
-    const baseUrl = `https://daniellesasi.github.io/Portfolio/${src}`;
-    if (type === 'video') {
-      slot.innerHTML = `<video src="${baseUrl}" muted autoplay loop></video>`;
-    } else {
-      slot.innerHTML = `<img src="${baseUrl}">`;
-    }
-  } else if (state[id]) {
-    showPreview(slot, state[id].preview, state[id].fileType);
-  } else {
-    slot.innerHTML = `<div class="plus">+</div>`;
-  }
+  const wrap = document.createElement('div');
+  wrap.className = 'media-wrap';
 
-  slot.innerHTML += `<span class="label">${id}</span><button class="remove" onclick="removeSlot(event,'${id}')">×</button>`;
-  slot.addEventListener('click', () => openPicker(id, slot));
-  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
-  slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
-  slot.addEventListener('drop', e => { e.preventDefault(); slot.classList.remove('dragover'); handleFile(id, slot, e.dataTransfer.files[0]); });
+  const el = document.createElement(type);
+  el.src = src;
+  if (type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; }
+  const s = state[id] || {};
+  el.style.objectPosition = `${s.posX ?? 50}% ${s.posY ?? 50}%`;
+  el.style.transform = `scale(${s.scale ?? 1})`;
+  wrap.appendChild(el);
+
+  const controls = document.createElement('div');
+  controls.className = 'slot-controls';
+  controls.innerHTML = `
+    <span class="slot-id">${id}</span>
+    <div class="ctrl-btns">
+      <button class="ctrl-btn" title="Reset position" onclick="resetSlot(event,'${id}')">↺</button>
+      <button class="ctrl-btn" title="Replace file" onclick="openPicker(event,'${id}')">↑</button>
+      <button class="ctrl-btn del" title="Delete" onclick="deleteSlot(event,'${id}')">✕</button>
+    </div>`;
+
+  slot.innerHTML = `<div class="zoom-hint">scroll to zoom</div>`;
+  slot.appendChild(wrap);
+  slot.appendChild(controls);
+
+  attachInteractions(slot, id);
   return slot;
 }
 
-function createAddSlot(sectionId, nextC) {
+function buildAddSlot(sectionId, nextC) {
   const id = `${sectionId}c${nextC}`;
   const slot = document.createElement('div');
-  slot.className = 'slot new-slot';
+  slot.className = 'slot empty add-slot';
   slot.dataset.id = id;
-  slot.dataset.isAdd = '1';
-  slot.innerHTML = `<div class="plus">+</div><span class="label">add</span>`;
-  slot.addEventListener('click', () => openPicker(id, slot, true));
+  slot.innerHTML = `<div class="empty-inner"><span class="plus-icon">+</span><span class="drop-hint">Drop or click</span></div>`;
+  slot.addEventListener('click', () => triggerPicker(id, slot, true));
+  addDropZone(slot, id, true);
+  return slot;
+}
+
+// ─── INTERACTIONS ──────────────────────────────────────────────────────────────
+function attachInteractions(slot, id) {
+  let dragging = false, ox = 0, oy = 0, moved = false;
+
+  slot.addEventListener('mousedown', e => {
+    if (e.target.closest('.ctrl-btn')) return;
+    dragging = true; moved = false;
+    ox = e.clientX; oy = e.clientY;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging || slot.dataset.id !== id) return;
+    const dx = e.clientX - ox, dy = e.clientY - oy;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+    ox = e.clientX; oy = e.clientY;
+    const s = state[id] || {};
+    s.posX = Math.max(0, Math.min(100, (s.posX ?? 50) - dx * 0.3));
+    s.posY = Math.max(0, Math.min(100, (s.posY ?? 50) - dy * 0.3));
+    state[id] = s;
+    applyTransform(slot, id);
+    markChanged(slot, id);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (dragging && !moved && slot.dataset.id === id) {
+      // treat as click to replace if empty, or just release
+    }
+    dragging = false;
+  });
+
+  slot.addEventListener('wheel', e => {
+    e.preventDefault();
+    const s = state[id] || {};
+    s.scale = Math.max(0.5, Math.min(4, (s.scale ?? 1) + (e.deltaY < 0 ? 0.05 : -0.05)));
+    state[id] = s;
+    applyTransform(slot, id);
+    markChanged(slot, id);
+  }, { passive: false });
+
+  addDropZone(slot, id, false);
+}
+
+function applyTransform(slot, id) {
+  const s = state[id] || {};
+  const el = slot.querySelector('img, video');
+  if (!el) return;
+  el.style.objectPosition = `${(s.posX ?? 50).toFixed(1)}% ${(s.posY ?? 50).toFixed(1)}%`;
+  el.style.transform = `scale(${(s.scale ?? 1).toFixed(3)})`;
+}
+
+function markChanged(slot, id) {
+  slot.classList.add('changed');
+  if (state[id]) state[id].modified = true;
+}
+
+function resetSlot(e, id) {
+  e.stopPropagation();
+  const s = state[id] || {};
+  s.posX = 50; s.posY = 50; s.scale = 1; s.modified = true;
+  state[id] = s;
+  const slot = document.querySelector(`.slot[data-id="${id}"]`);
+  applyTransform(slot, id);
+  markChanged(slot, id);
+}
+
+function deleteSlot(e, id) {
+  e.stopPropagation();
+  if (!confirm(`Delete ${id} from portfolio?`)) return;
+  state[id] = { ...state[id], deleted: true };
+  const slot = document.querySelector(`.slot[data-id="${id}"]`);
+  if (slot) {
+    slot.style.opacity = '0.3';
+    slot.style.pointerEvents = 'none';
+    slot.style.borderColor = '#ff4444';
+  }
+  setStatus(`${id} marked for deletion`, 'ok');
+}
+
+function openPicker(e, id) {
+  e.stopPropagation();
+  const slot = document.querySelector(`.slot[data-id="${id}"]`);
+  triggerPicker(id, slot, false);
+}
+
+function triggerPicker(id, slot, isNew) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*,video/*';
+  input.onchange = () => { if (input.files[0]) handleFile(id, slot, input.files[0], isNew); };
+  input.click();
+}
+
+function addDropZone(slot, id, isNew) {
   slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
   slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
   slot.addEventListener('drop', e => {
     e.preventDefault(); slot.classList.remove('dragover');
-    handleFile(id, slot, e.dataTransfer.files[0], true);
+    if (e.dataTransfer.files[0]) handleFile(id, slot, e.dataTransfer.files[0], isNew);
   });
-  return slot;
 }
 
-function openPicker(id, slot, isAdd = false) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*,video/*';
-  input.onchange = () => { if (input.files[0]) handleFile(id, slot, input.files[0], isAdd); };
-  input.click();
-}
-
-function handleFile(id, slot, file, isAdd = false) {
-  if (!file) return;
+// ─── FILE HANDLER ──────────────────────────────────────────────────────────────
+function handleFile(id, slot, file, isNew) {
   if (file.size > 25 * 1024 * 1024) {
-    setStatus(`${file.name} is too large (${(file.size/1024/1024).toFixed(0)}MB). Max 25MB.`, 'err');
+    setStatus(`${file.name} is ${(file.size/1024/1024).toFixed(0)}MB — max 25MB. Compress it first.`, 'err');
     return;
   }
   const ext = file.name.split('.').pop().toLowerCase();
   const filename = `${id}.${ext}`;
   const isVideo = file.type.startsWith('video');
-
   const reader = new FileReader();
-  reader.onload = e => {
-    const base64 = e.target.result.split(',')[1];
-    state[id] = { file, filename, base64, fileType: isVideo ? 'video' : 'img', preview: e.target.result };
-    showPreview(slot, e.target.result, isVideo ? 'video' : 'img');
-    slot.classList.add('filled', 'changed');
-    slot.classList.remove('new-slot');
+  reader.onload = ev => {
+    const base64 = ev.target.result.split(',')[1];
+    const prev = state[id] || {};
+    state[id] = { ...prev, file, filename, base64, fileType: isVideo ? 'video' : 'img', preview: ev.target.result, posX: prev.posX ?? 50, posY: prev.posY ?? 50, scale: prev.scale ?? 1, modified: true };
 
-    // If this was an "add" slot, append a new add slot after it
-    if (isAdd) {
+    // Rebuild slot
+    const newSlot = buildSlot(id, ev.target.result, isVideo ? 'video' : 'img');
+    newSlot.classList.add('changed');
+    slot.replaceWith(newSlot);
+
+    if (isNew) {
       const sectionId = id.replace(/c\d+$/, '');
       const nextC = parseInt(id.match(/c(\d+)$/)[1]) + 1;
-      const slotsEl = slot.parentElement;
-      slotsEl.insertBefore(createAddSlot(sectionId, nextC), slot.nextSibling);
-      slot.dataset.isAdd = '';
+      newSlot.after(buildAddSlot(sectionId, nextC));
     }
-    setStatus(`${filename} ready to upload`, 'ok');
+    setStatus(`${filename} ready`, 'ok');
   };
   reader.readAsDataURL(file);
 }
 
-function showPreview(slot, src, type) {
-  const label = slot.querySelector('.label');
-  const remove = slot.querySelector('.remove');
-  // Clear old preview
-  Array.from(slot.children).forEach(c => { if (c !== label && c !== remove) c.remove(); });
-  if (type === 'video') {
-    const v = document.createElement('video');
-    v.src = src; v.muted = true; v.autoplay = true; v.loop = true;
-    slot.insertBefore(v, label);
-  } else {
-    const img = document.createElement('img');
-    img.src = src;
-    slot.insertBefore(img, label);
-  }
-}
-
-function removeSlot(e, id) {
-  e.stopPropagation();
-  delete state[id];
-  // Mark for deletion in index.html by flagging it
-  state[`__delete__${id}`] = true;
-  const slot = document.querySelector(`.slot[data-id="${id}"]`);
-  if (slot) {
-    slot.innerHTML = `<div class="plus">+</div><span class="label">${id}</span><button class="remove" onclick="removeSlot(event,'${id}')">×</button>`;
-    slot.classList.remove('filled', 'changed');
-    slot.className = 'slot new-slot';
-    slot.addEventListener('click', () => openPicker(id, slot, true));
-  }
-  setStatus(`${id} marked for removal`, 'ok');
-}
-
+// ─── SAVE ──────────────────────────────────────────────────────────────────────
 async function saveAll() {
   if (!getToken()) { setStatus('No token', 'err'); return; }
-  const changes = Object.entries(state).filter(([k]) => !k.startsWith('__delete__'));
-  if (!changes.length) { setStatus('Nothing to save', ''); return; }
+  const toUpload = Object.entries(state).filter(([, s]) => s.base64 && !s.deleted);
+  const toDelete = Object.entries(state).filter(([, s]) => s.deleted);
+  const toUpdate = Object.entries(state).filter(([, s]) => s.modified && !s.base64 && !s.deleted);
+
+  if (!toUpload.length && !toDelete.length && !toUpdate.length) {
+    setStatus('No changes to save', ''); return;
+  }
 
   document.getElementById('saveBtn').disabled = true;
-  setStatus(`Uploading ${changes.length} file(s)...`);
+  let done = 0;
+  const total = toUpload.length;
 
-  let uploaded = 0;
-  const uploadedFiles = {};
-
-  for (const [id, s] of changes) {
+  for (const [id, s] of toUpload) {
+    setStatus(`Uploading ${s.filename} (${++done}/${total})…`);
     try {
-      setStatus(`Uploading ${s.filename} (${uploaded + 1}/${changes.length})...`);
-      // Check if file exists (get SHA)
       const existing = await ghFetch(s.filename);
       const sha = existing.ok ? (await existing.json()).sha : undefined;
-
       const body = { message: `Update ${s.filename}`, content: s.base64, branch: BRANCH };
       if (sha) body.sha = sha;
-
       const res = await ghFetch(s.filename, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(`Failed to upload ${s.filename}`);
-      uploadedFiles[id] = s;
-      uploaded++;
-      // Mark slot as no longer pending
-      const slot = document.querySelector(`.slot[data-id="${id}"]`);
-      if (slot) slot.classList.remove('changed');
+      if (!res.ok) throw new Error(await res.text());
     } catch(e) {
-      setStatus(`Error uploading ${s.filename}: ${e.message}`, 'err');
+      setStatus(`Upload failed: ${e.message}`, 'err');
       document.getElementById('saveBtn').disabled = false;
       return;
     }
   }
 
-  // Update index.html
-  await updateIndexHTML(uploadedFiles);
-  state = {};
+  setStatus('Updating index.html…');
+  try {
+    await updateIndexHTML();
+    setStatus(`✓ Saved ${done} file(s)`, 'ok');
+    // Clear upload state, keep transform state
+    Object.keys(state).forEach(id => { if (state[id]) { delete state[id].base64; delete state[id].file; delete state[id].modified; } });
+  } catch(e) {
+    setStatus('Failed to update index.html: ' + e.message, 'err');
+  }
   document.getElementById('saveBtn').disabled = false;
-  setStatus(`✓ ${uploaded} file(s) uploaded and index.html updated`, 'ok');
 }
 
-async function updateIndexHTML(uploadedFiles) {
-  setStatus('Updating index.html...');
+async function updateIndexHTML() {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(currentIndex, 'text/html');
+  const doc = parser.parseFromString(currentIndexHTML, 'text/html');
 
-  for (const [id, s] of Object.entries(uploadedFiles)) {
+  for (const [id, s] of Object.entries(state)) {
     const sectionId = id.replace(/c\d+$/, '');
-    const cNum = parseInt(id.match(/c(\d+)$/)[1]);
+    const cNum = parseInt(id.match(/c(\d+)$/)[1]) - 1;
     const section = doc.getElementById(sectionId);
     if (!section) continue;
-
     const gallery = section.querySelector('.horizontal-gallery');
     if (!gallery) continue;
-
     const allMedia = gallery.querySelectorAll('img, video');
-    const targetEl = allMedia[cNum - 1];
 
-    if (targetEl) {
-      // Replace existing
-      const newEl = doc.createElement(s.fileType);
-      newEl.setAttribute('src', s.filename);
-      if (s.fileType === 'video') { newEl.setAttribute('autoplay',''); newEl.setAttribute('loop',''); newEl.setAttribute('muted',''); newEl.setAttribute('playsinline',''); }
-      else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
-      targetEl.replaceWith(newEl);
-    } else {
-      // Append new
-      const newEl = doc.createElement(s.fileType);
-      newEl.setAttribute('src', s.filename);
-      if (s.fileType === 'video') { newEl.setAttribute('autoplay',''); newEl.setAttribute('loop',''); newEl.setAttribute('muted',''); newEl.setAttribute('playsinline',''); }
-      else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
-      gallery.appendChild(newEl);
+    const styleStr = `object-position: ${(s.posX??50).toFixed(1)}% ${(s.posY??50).toFixed(1)}%; transform: scale(${(s.scale??1).toFixed(3)});`;
+
+    if (s.deleted) {
+      allMedia[cNum]?.remove();
+      continue;
     }
-  }
 
-  // Handle deletions
-  for (const key of Object.keys(state).filter(k => k.startsWith('__delete__'))) {
-    const id = key.replace('__delete__', '');
-    const sectionId = id.replace(/c\d+$/, '');
-    const cNum = parseInt(id.match(/c(\d+)$/)[1]);
-    const section = doc.getElementById(sectionId);
-    if (section) {
-      const gallery = section.querySelector('.horizontal-gallery');
-      const allMedia = gallery?.querySelectorAll('img, video');
-      if (allMedia?.[cNum - 1]) allMedia[cNum - 1].remove();
+    if (s.base64 || s.modified) {
+      const filename = s.filename || (allMedia[cNum]?.getAttribute('src'));
+      if (!filename) continue;
+      const type = s.fileType || allMedia[cNum]?.tagName.toLowerCase();
+
+      if (allMedia[cNum]) {
+        allMedia[cNum].setAttribute('src', filename);
+        allMedia[cNum].setAttribute('style', styleStr);
+      } else {
+        const newEl = doc.createElement(type === 'video' ? 'video' : 'img');
+        newEl.setAttribute('src', filename);
+        newEl.setAttribute('style', styleStr);
+        if (type === 'video') { newEl.autoplay = true; newEl.loop = true; newEl.muted = true; newEl.setAttribute('playsinline',''); }
+        else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
+        gallery.appendChild(newEl);
+      }
+    } else if (s.existing && (s.posX !== 50 || s.posY !== 50 || s.scale !== 1)) {
+      allMedia[cNum]?.setAttribute('style', styleStr);
     }
   }
 
   const newHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-  const base64 = btoa(unescape(encodeURIComponent(newHTML)));
-
+  const encoded = btoa(unescape(encodeURIComponent(newHTML)));
   const res = await ghFetch('index.html', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Update portfolio via editor', content: base64, sha: indexSha, branch: BRANCH })
+    body: JSON.stringify({ message: 'Update portfolio via editor', content: encoded, sha: indexSha, branch: BRANCH })
   });
-
-  if (!res.ok) throw new Error('Failed to update index.html');
+  if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
   indexSha = data.content.sha;
-  currentIndex = newHTML;
+  currentIndexHTML = newHTML;
 }
 
+// ─── TABS ──────────────────────────────────────────────────────────────────────
 function switchTab(i) {
-  activeTab = i;
   document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
   document.querySelectorAll('.portfolio-grid').forEach((g, gi) => g.classList.toggle('active', gi === i));
 }
 
-// Auto-load token from localStorage
 window.onload = () => {
   const saved = localStorage.getItem('gh_token');
   if (saved) document.getElementById('tokenInput').value = saved;
