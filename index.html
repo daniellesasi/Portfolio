@@ -29,7 +29,9 @@
         .project-section { min-width: 100vw; height: 100vh; flex-shrink: 0; scroll-snap-align: start; overflow-y: scroll; scroll-snap-type: y proximity; cursor: pointer; }
 
         .horizontal-gallery { display: flex; flex-direction: column; width: 100%; }
-        .horizontal-gallery img, .horizontal-gallery video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; scroll-snap-align: start; }
+        .horizontal-gallery > img, .horizontal-gallery > video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; scroll-snap-align: start; }
+        .canvas-frame { position: relative; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; scroll-snap-align: start; }
+        .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; }
     </style>
 </head>
 <body>

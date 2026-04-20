@@ -478,27 +478,27 @@ async function saveAll(){
 }
 
 async function pushHTML(){
-  const doc=new DOMParser().parseFromString(idxHTML,'text/html');
+  let html=idxHTML;
   Object.entries(sections).forEach(([id,slides])=>{
-    const sec=doc.getElementById(id); if(!sec)return;
-    const gal=sec.querySelector('.horizontal-gallery'); if(!gal)return;
-    gal.innerHTML='\n                    ';
+    let galContent='';
     slides.forEach(slide=>{
       if(!slide.layers?.length)return;
-      const frame=doc.createElement('div'); frame.className='canvas-frame';
+      let frame='<div class="canvas-frame">';
       slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
-        const el=doc.createElement(layer.type);
-        el.setAttribute('src',layer.filename||layer.src);
-        el.setAttribute('style',`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`);
-        if(layer.type==='video'){el.setAttribute('autoplay','');el.setAttribute('loop','');el.setAttribute('muted','');el.setAttribute('playsinline','');}
-        else{el.setAttribute('loading','lazy');el.setAttribute('alt','');}
-        frame.appendChild(el);
+        const src=layer.filename||layer.src;
+        const style=`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`;
+        if(layer.type==='video') frame+=`<video src="${src}" style="${style}" autoplay loop muted playsinline></video>`;
+        else frame+=`<img src="${src}" style="${style}" loading="lazy" alt="">`;
       });
-      gal.appendChild(frame);
-      gal.appendChild(doc.createTextNode('\n                    '));
+      frame+='</div>\n                    ';
+      galContent+=frame;
     });
+    // Replace only the gallery innerHTML — never re-serialize the full document (corrupts CSS)
+    html=html.replace(
+      new RegExp(`(<section[^>]+id="${id}"[\\s\\S]*?<div[^>]+class="horizontal-gallery"[^>]*>)[\\s\\S]*?(</div>\\s*</section>)`),
+      `$1\n                    ${galContent}$2`
+    );
   });
-  const html='<!DOCTYPE html>\n'+doc.documentElement.outerHTML;
   const enc=btoa(unescape(encodeURIComponent(html)));
   const res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha:idxSha,branch:BRANCH})});
   if(!res.ok)throw new Error(await res.text());
