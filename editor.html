@@ -193,8 +193,7 @@ function parseHTML(){
         // New structure: .canvas-frame elements
         sec.querySelectorAll('.canvas-frame').forEach(frame=>{
           const layers=[];
-          const fs=frame.getAttribute('style')||'';
-          const bg=(fs.match(/background:\s*([^;]+)/)||[,'#000'])[1].trim();
+          const bg=frame.classList.contains('bg-white')?'#fff':'#000';
           frame.querySelectorAll('img,video').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
             const lx=parseFloat((s.match(/left:([\d.]+)%/)||[,0])[1]);
@@ -488,8 +487,8 @@ function buildHTML(){
     let galContent='';
     slides.forEach(slide=>{
       if(!slide.layers?.length)return;
-      const bgStyle=slide.bg&&slide.bg!=='#000'?` style="background:${slide.bg}"`:'';
-      let frame=`<div class="canvas-frame"${bgStyle}>`;
+      const bgClass=slide.bg==='#fff'?' bg-white':'';
+      let frame=`<div class="canvas-frame${bgClass}">`;
       slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
         const src=layer.filename||layer.src;
         const style=`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`;
