@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Editor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #111; color: #fff; min-height: 100vh; }
+
+  header { background: #1a1a1a; padding: 20px 30px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  header h1 { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; color: #888; flex: 1; }
+  header input { background: #2a2a2a; border: 1px solid #444; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; width: 320px; }
+  header input::placeholder { color: #555; }
+  header button { background: #fff; color: #000; border: none; padding: 8px 20px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  header button:hover { background: #ddd; }
+  header button.save { background: #0f0; }
+  header button.save:hover { background: #0c0; }
+  header button:disabled { background: #444; color: #888; cursor: not-allowed; }
+  #status { font-size: 0.8rem; color: #888; }
+  #status.ok { color: #0f0; }
+  #status.err { color: #f44; }
+
+  .tabs { display: flex; gap: 2px; padding: 20px 30px 0; }
+  .tab { padding: 10px 24px; background: #222; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 0.85rem; color: #888; }
+  .tab.active { background: #2a2a2a; color: #fff; }
+
+  #editor { padding: 0 30px 40px; }
+  .portfolio-grid { background: #2a2a2a; border-radius: 0 12px 12px 12px; padding: 24px; display: none; }
+  .portfolio-grid.active { display: block; }
+
+  .section-row { margin-bottom: 24px; }
+  .section-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-bottom: 10px; }
+  .slots { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .slot { width: 160px; height: 100px; background: #1a1a1a; border: 2px dashed #444; border-radius: 8px; position: relative; cursor: pointer; overflow: hidden; flex-shrink: 0; transition: border-color 0.2s; }
+  .slot:hover { border-color: #888; }
+  .slot.dragover { border-color: #fff; background: #222; }
+  .slot.filled { border-style: solid; border-color: #555; }
+  .slot.changed { border-color: #0f0; }
+
+  .slot img, .slot video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .slot .plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #444; }
+  .slot .label { position: absolute; bottom: 4px; left: 6px; font-size: 0.6rem; color: rgba(255,255,255,0.5); }
+  .slot .remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 0.65rem; cursor: pointer; display: none; align-items: center; justify-content: center; }
+  .slot:hover .remove { display: flex; }
+  .slot.new-slot { border-color: #333; }
+  .slot.new-slot .plus { color: #333; }
+
+  .warning { background: #332200; border: 1px solid #664400; border-radius: 8px; padding: 12px 16px; font-size: 0.8rem; color: #ffaa44; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Portfolio Editor</h1>
+  <input id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
+  <button onclick="loadPortfolio()">Load</button>
+  <button class="save" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
+  <span id="status"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">Portfolio 1</div>
+  <div class="tab" onclick="switchTab(1)">Portfolio 2</div>
+</div>
+
+<div id="editor">
+  <div class="portfolio-grid active" id="grid-0"></div>
+  <div class="portfolio-grid" id="grid-1"></div>
+</div>
+
+<script>
+const REPO = 'daniellesasi/Portfolio';
+const BRANCH = 'main';
+const PORTFOLIOS = ['a1', 'a2'];
+const SECTIONS = 7;
+
+let token = '';
+let state = {}; // { 'a1b1c1': { file, preview, sha } }
+let indexSha = '';
+let currentIndex = '';
+let activeTab = 0;
+
+function getToken() {
+  token = document.getElementById('tokenInput').value.trim();
+  if (!token) { token = localStorage.getItem('gh_token') || ''; document.getElementById('tokenInput').value = token; }
+  else { localStorage.setItem('gh_token', token); }
+  return token;
+}
+
+function setStatus(msg, type = '') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = type;
+}
+
+async function ghFetch(path, opts = {}) {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json', ...opts.headers },
+    ...opts
+  });
+  return res;
+}
+
+async function loadPortfolio() {
+  if (!getToken()) { setStatus('Enter your GitHub token first', 'err'); return; }
+  setStatus('Loading...');
+  try {
+    const res = await ghFetch('index.html');
+    if (!res.ok) throw new Error('Could not load index.html');
+    const data = await res.json();
+    indexSha = data.sha;
+    currentIndex = atob(data.content.replace(/\n/g, ''));
+    renderGrids();
+    document.getElementById('saveBtn').disabled = false;
+    setStatus('Loaded ✓', 'ok');
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'err');
+  }
+}
+
+function renderGrids() {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(currentIndex, 'text/html');
+
+  PORTFOLIOS.forEach((port, pi) => {
+    const grid = document.getElementById(`grid-${pi}`);
+    grid.innerHTML = '';
+    grid.innerHTML += `<div class="warning">⚠️ Files over 25 MB can't be uploaded via the API — compress videos first. Images and small videos work directly.</div>`;
+
+    for (let b = 1; b <= SECTIONS; b++) {
+      const sectionId = `${port}b${b}`;
+      const section = doc.getElementById(sectionId);
+      const row = document.createElement('div');
+      row.className = 'section-row';
+      row.innerHTML = `<div class="section-label">Gallery ${b}</div>`;
+      const slots = document.createElement('div');
+      slots.className = 'slots';
+      slots.dataset.section = sectionId;
+
+      const media = section ? Array.from(section.querySelectorAll('img, video')) : [];
+      media.forEach((el, ci) => {
+        const cId = `${sectionId}c${ci + 1}`;
+        const src = el.getAttribute('src');
+        slots.appendChild(createSlot(cId, src, el.tagName.toLowerCase(), false));
+      });
+
+      // "Add" slot
+      slots.appendChild(createAddSlot(sectionId, media.length + 1));
+      row.appendChild(slots);
+      grid.appendChild(row);
+    }
+  });
+}
+
+function createSlot(id, src, type, isNew) {
+  const slot = document.createElement('div');
+  slot.className = `slot ${src ? 'filled' : ''} ${isNew ? 'new-slot' : ''}`;
+  slot.dataset.id = id;
+
+  if (src && !state[id]) {
+    const baseUrl = `https://daniellesasi.github.io/Portfolio/${src}`;
+    if (type === 'video') {
+      slot.innerHTML = `<video src="${baseUrl}" muted autoplay loop></video>`;
+    } else {
+      slot.innerHTML = `<img src="${baseUrl}">`;
+    }
+  } else if (state[id]) {
+    showPreview(slot, state[id].preview, state[id].fileType);
+  } else {
+    slot.innerHTML = `<div class="plus">+</div>`;
+  }
+
+  slot.innerHTML += `<span class="label">${id}</span><button class="remove" onclick="removeSlot(event,'${id}')">×</button>`;
+  slot.addEventListener('click', () => openPicker(id, slot));
+  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
+  slot.addEventListener('drop', e => { e.preventDefault(); slot.classList.remove('dragover'); handleFile(id, slot, e.dataTransfer.files[0]); });
+  return slot;
+}
+
+function createAddSlot(sectionId, nextC) {
+  const id = `${sectionId}c${nextC}`;
+  const slot = document.createElement('div');
+  slot.className = 'slot new-slot';
+  slot.dataset.id = id;
+  slot.dataset.isAdd = '1';
+  slot.innerHTML = `<div class="plus">+</div><span class="label">add</span>`;
+  slot.addEventListener('click', () => openPicker(id, slot, true));
+  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
+  slot.addEventListener('drop', e => {
+    e.preventDefault(); slot.classList.remove('dragover');
+    handleFile(id, slot, e.dataTransfer.files[0], true);
+  });
+  return slot;
+}
+
+function openPicker(id, slot, isAdd = false) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,video/*';
+  input.onchange = () => { if (input.files[0]) handleFile(id, slot, input.files[0], isAdd); };
+  input.click();
+}
+
+function handleFile(id, slot, file, isAdd = false) {
+  if (!file) return;
+  if (file.size > 25 * 1024 * 1024) {
+    setStatus(`${file.name} is too large (${(file.size/1024/1024).toFixed(0)}MB). Max 25MB.`, 'err');
+    return;
+  }
+  const ext = file.name.split('.').pop().toLowerCase();
+  const filename = `${id}.${ext}`;
+  const isVideo = file.type.startsWith('video');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const base64 = e.target.result.split(',')[1];
+    state[id] = { file, filename, base64, fileType: isVideo ? 'video' : 'img', preview: e.target.result };
+    showPreview(slot, e.target.result, isVideo ? 'video' : 'img');
+    slot.classList.add('filled', 'changed');
+    slot.classList.remove('new-slot');
+
+    // If this was an "add" slot, append a new add slot after it
+    if (isAdd) {
+      const sectionId = id.replace(/c\d+$/, '');
+      const nextC = parseInt(id.match(/c(\d+)$/)[1]) + 1;
+      const slotsEl = slot.parentElement;
+      slotsEl.insertBefore(createAddSlot(sectionId, nextC), slot.nextSibling);
+      slot.dataset.isAdd = '';
+    }
+    setStatus(`${filename} ready to upload`, 'ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+function showPreview(slot, src, type) {
+  const label = slot.querySelector('.label');
+  const remove = slot.querySelector('.remove');
+  // Clear old preview
+  Array.from(slot.children).forEach(c => { if (c !== label && c !== remove) c.remove(); });
+  if (type === 'video') {
+    const v = document.createElement('video');
+    v.src = src; v.muted = true; v.autoplay = true; v.loop = true;
+    slot.insertBefore(v, label);
+  } else {
+    const img = document.createElement('img');
+    img.src = src;
+    slot.insertBefore(img, label);
+  }
+}
+
+function removeSlot(e, id) {
+  e.stopPropagation();
+  delete state[id];
+  // Mark for deletion in index.html by flagging it
+  state[`__delete__${id}`] = true;
+  const slot = document.querySelector(`.slot[data-id="${id}"]`);
+  if (slot) {
+    slot.innerHTML = `<div class="plus">+</div><span class="label">${id}</span><button class="remove" onclick="removeSlot(event,'${id}')">×</button>`;
+    slot.classList.remove('filled', 'changed');
+    slot.className = 'slot new-slot';
+    slot.addEventListener('click', () => openPicker(id, slot, true));
+  }
+  setStatus(`${id} marked for removal`, 'ok');
+}
+
+async function saveAll() {
+  if (!getToken()) { setStatus('No token', 'err'); return; }
+  const changes = Object.entries(state).filter(([k]) => !k.startsWith('__delete__'));
+  if (!changes.length) { setStatus('Nothing to save', ''); return; }
+
+  document.getElementById('saveBtn').disabled = true;
+  setStatus(`Uploading ${changes.length} file(s)...`);
+
+  let uploaded = 0;
+  const uploadedFiles = {};
+
+  for (const [id, s] of changes) {
+    try {
+      setStatus(`Uploading ${s.filename} (${uploaded + 1}/${changes.length})...`);
+      // Check if file exists (get SHA)
+      const existing = await ghFetch(s.filename);
+      const sha = existing.ok ? (await existing.json()).sha : undefined;
+
+      const body = { message: `Update ${s.filename}`, content: s.base64, branch: BRANCH };
+      if (sha) body.sha = sha;
+
+      const res = await ghFetch(s.filename, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error(`Failed to upload ${s.filename}`);
+      uploadedFiles[id] = s;
+      uploaded++;
+      // Mark slot as no longer pending
+      const slot = document.querySelector(`.slot[data-id="${id}"]`);
+      if (slot) slot.classList.remove('changed');
+    } catch(e) {
+      setStatus(`Error uploading ${s.filename}: ${e.message}`, 'err');
+      document.getElementById('saveBtn').disabled = false;
+      return;
+    }
+  }
+
+  // Update index.html
+  await updateIndexHTML(uploadedFiles);
+  state = {};
+  document.getElementById('saveBtn').disabled = false;
+  setStatus(`✓ ${uploaded} file(s) uploaded and index.html updated`, 'ok');
+}
+
+async function updateIndexHTML(uploadedFiles) {
+  setStatus('Updating index.html...');
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(currentIndex, 'text/html');
+
+  for (const [id, s] of Object.entries(uploadedFiles)) {
+    const sectionId = id.replace(/c\d+$/, '');
+    const cNum = parseInt(id.match(/c(\d+)$/)[1]);
+    const section = doc.getElementById(sectionId);
+    if (!section) continue;
+
+    const gallery = section.querySelector('.horizontal-gallery');
+    if (!gallery) continue;
+
+    const allMedia = gallery.querySelectorAll('img, video');
+    const targetEl = allMedia[cNum - 1];
+
+    if (targetEl) {
+      // Replace existing
+      const newEl = doc.createElement(s.fileType);
+      newEl.setAttribute('src', s.filename);
+      if (s.fileType === 'video') { newEl.setAttribute('autoplay',''); newEl.setAttribute('loop',''); newEl.setAttribute('muted',''); newEl.setAttribute('playsinline',''); }
+      else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
+      targetEl.replaceWith(newEl);
+    } else {
+      // Append new
+      const newEl = doc.createElement(s.fileType);
+      newEl.setAttribute('src', s.filename);
+      if (s.fileType === 'video') { newEl.setAttribute('autoplay',''); newEl.setAttribute('loop',''); newEl.setAttribute('muted',''); newEl.setAttribute('playsinline',''); }
+      else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
+      gallery.appendChild(newEl);
+    }
+  }
+
+  // Handle deletions
+  for (const key of Object.keys(state).filter(k => k.startsWith('__delete__'))) {
+    const id = key.replace('__delete__', '');
+    const sectionId = id.replace(/c\d+$/, '');
+    const cNum = parseInt(id.match(/c(\d+)$/)[1]);
+    const section = doc.getElementById(sectionId);
+    if (section) {
+      const gallery = section.querySelector('.horizontal-gallery');
+      const allMedia = gallery?.querySelectorAll('img, video');
+      if (allMedia?.[cNum - 1]) allMedia[cNum - 1].remove();
+    }
+  }
+
+  const newHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  const base64 = btoa(unescape(encodeURIComponent(newHTML)));
+
+  const res = await ghFetch('index.html', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Update portfolio via editor', content: base64, sha: indexSha, branch: BRANCH })
+  });
+
+  if (!res.ok) throw new Error('Failed to update index.html');
+  const data = await res.json();
+  indexSha = data.content.sha;
+  currentIndex = newHTML;
+}
+
+function switchTab(i) {
+  activeTab = i;
+  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
+  document.querySelectorAll('.portfolio-grid').forEach((g, gi) => g.classList.toggle('active', gi === i));
+}
+
+// Auto-load token from localStorage
+window.onload = () => {
+  const saved = localStorage.getItem('gh_token');
+  if (saved) document.getElementById('tokenInput').value = saved;
+};
+</script>
+</body>
+</html>
