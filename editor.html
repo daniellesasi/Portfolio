@@ -413,13 +413,13 @@ function pickFiles(){ const i=document.createElement('input'); i.type='file'; i.
 
 function addFilesToSlide(files){
   const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
+  const slides=sections[activeSec];
+  let cIdx=1;
+  slides.forEach(sl=>sl.layers.forEach(l=>{const m=l.filename?.match(/c(\d+)\./);if(m)cIdx=Math.max(cIdx,+m[1]+1);}));
   Array.from(files).forEach(file=>{
     if(file.size>25*1024*1024){st(`${file.name} too large (max 25MB)`,'er');return;}
     const ext=file.name.split('.').pop().toLowerCase();
-    const slides=sections[activeSec];
-    // find unused c index
-    let cIdx=1; slides.forEach(sl=>sl.layers.forEach(l=>{const m=l.filename?.match(/c(\d+)\./);if(m)cIdx=Math.max(cIdx,+m[1]+1);}));
-    const fname=`${activeSec}c${cIdx}.${ext}`;
+    const fname=`${activeSec}c${cIdx++}.${ext}`;
     const isVid=file.type.startsWith('video');
     const reader=new FileReader();
     reader.onload=ev=>{
