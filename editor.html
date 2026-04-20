@@ -169,7 +169,7 @@ let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,oro
 const $ = id => document.getElementById(id);
 const tok = () => { token=$('tok').value.trim()||localStorage.getItem('gh_t')||''; $('tok').value=token; if(token)localStorage.setItem('gh_t',token); return token; };
 const st = (m,c='') => { $('st').textContent=m; $('st').className=c; };
-const gh = (p,o={}) => fetch(`https://api.github.com/repos/${REPO}/contents/${p}`,{headers:{Authorization:`token ${tok()}`,Accept:'application/vnd.github.v3+json',...o.headers},...o});
+const gh = (p,o={}) => { const {headers:xh={},...rest}=o; return fetch(`https://api.github.com/repos/${REPO}/contents/${p}`,{...rest,headers:{Authorization:`token ${tok()}`,Accept:'application/vnd.github.v3+json',...xh}}); };
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function load(){
