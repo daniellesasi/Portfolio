@@ -6,470 +6,479 @@
 <title>Portfolio Editor</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: #111; color: #fff; min-height: 100vh; }
+  body { font-family: system-ui, sans-serif; background: #0d0d0d; color: #fff; height: 100vh; overflow: hidden; }
 
-  header { background: #1a1a1a; padding: 16px 30px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; }
-  header h1 { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: #555; flex: 1; }
-  header input { background: #2a2a2a; border: 1px solid #3a3a3a; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.82rem; width: 300px; }
-  header input::placeholder { color: #444; }
-  .btn { background: #2a2a2a; color: #fff; border: 1px solid #3a3a3a; padding: 8px 18px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; }
-  .btn:hover { background: #333; }
+  /* ── HEADER ── */
+  #header { height: 52px; background: #141414; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; padding: 0 24px; flex-shrink: 0; }
+  #header h1 { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: #444; flex: 1; }
+  .btn { background: #222; color: #ccc; border: 1px solid #333; padding: 6px 16px; border-radius: 5px; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: #2a2a2a; color: #fff; }
   .btn.primary { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
-  .btn.primary:hover { background: #ddd; }
-  .btn.green { background: #00cc44; color: #000; border-color: #00cc44; font-weight: 600; }
-  .btn.green:hover { background: #00aa33; }
-  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  #status { font-size: 0.78rem; color: #555; min-width: 200px; }
-  #status.ok { color: #00cc44; }
-  #status.err { color: #ff4444; }
+  .btn.primary:hover { background: #e0e0e0; }
+  .btn.green { background: #00bb44; color: #000; border-color: #00bb44; font-weight: 600; }
+  .btn.green:hover { background: #009933; }
+  .btn:disabled { opacity: 0.25; pointer-events: none; }
+  input.token-input { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 6px 12px; border-radius: 5px; font-size: 0.78rem; width: 260px; }
+  input.token-input::placeholder { color: #444; }
+  #status { font-size: 0.75rem; color: #444; }
+  #status.ok { color: #00bb44; }
+  #status.err { color: #f44; }
 
-  .tabs { display: flex; gap: 1px; padding: 24px 30px 0; }
-  .tab { padding: 8px 22px; background: #1a1a1a; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.8rem; color: #555; border: 1px solid #2a2a2a; border-bottom: none; }
-  .tab.active { background: #1e1e1e; color: #fff; }
+  /* ── MAIN LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: calc(100vh - 52px); }
 
-  #editor { padding: 0 30px 60px; }
-  .portfolio-grid { background: #1e1e1e; border-radius: 0 12px 12px 12px; padding: 30px; display: none; border: 1px solid #2a2a2a; border-top: none; }
-  .portfolio-grid.active { display: block; }
+  /* ── GRID VIEW ── */
+  #grid-view { flex: 1; overflow-y: auto; padding: 24px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab { padding: 6px 18px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px; cursor: pointer; font-size: 0.78rem; color: #555; }
+  .tab.active { background: #fff; color: #000; border-color: #fff; }
 
-  .section-row { margin-bottom: 30px; }
-  .section-label { font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; color: #444; margin-bottom: 12px; }
-  .slots { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  .sections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .section-card { background: #1a1a1a; border: 1px solid #222; border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.2s, transform 0.2s; }
+  .section-card:hover { border-color: #555; transform: scale(1.01); }
+  .section-card .preview { height: 160px; background: #111; position: relative; overflow: hidden; }
+  .section-card .preview img, .section-card .preview video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .section-card .preview .count-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 10px; font-size: 0.65rem; color: #aaa; }
+  .section-card .card-footer { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .section-card .card-label { font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: #555; }
+  .section-card .edit-hint { font-size: 0.68rem; color: #333; }
+  .section-card:hover .edit-hint { color: #888; }
 
-  /* SLOT */
-  .slot { width: 220px; height: 140px; background: #111; border: 2px dashed #2a2a2a; border-radius: 8px; position: relative; overflow: hidden; flex-shrink: 0; transition: border-color 0.15s; }
-  .slot.empty:hover { border-color: #444; }
-  .slot.filled { border-style: solid; border-color: #333; cursor: grab; }
-  .slot.filled:active { cursor: grabbing; }
-  .slot.changed { border-color: #00cc44; }
-  .slot.dragover { border-color: #fff !important; background: #1a1a1a; }
+  /* ── CANVAS EDITOR (full screen overlay) ── */
+  #canvas-editor { position: fixed; inset: 0; background: #0d0d0d; z-index: 100; display: none; flex-direction: column; }
+  #canvas-editor.open { display: flex; }
 
-  .slot .media-wrap { width: 100%; height: 100%; overflow: hidden; position: relative; }
-  .slot .media-wrap img,
-  .slot .media-wrap video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; transform-origin: center center; }
+  #canvas-header { height: 52px; background: #141414; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 14px; padding: 0 20px; flex-shrink: 0; }
+  #canvas-header .back-btn { font-size: 1.1rem; cursor: pointer; color: #888; padding: 4px 8px; }
+  #canvas-header .back-btn:hover { color: #fff; }
+  #canvas-header .canvas-title { font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: #666; flex: 1; }
+  #canvas-header .slide-info { font-size: 0.72rem; color: #444; }
+  .zoom-display { font-size: 0.72rem; color: #444; min-width: 50px; text-align: right; }
 
-  /* Empty state */
-  .slot .empty-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
-  .slot .empty-inner .plus-icon { font-size: 1.6rem; color: #333; }
-  .slot .empty-inner .drop-hint { font-size: 0.6rem; color: #333; letter-spacing: 1px; text-transform: uppercase; }
+  /* Main canvas area */
+  #canvas-area { flex: 1; position: relative; overflow: hidden; cursor: grab; background: #000; }
+  #canvas-area.grabbing { cursor: grabbing; }
+  #canvas-media-wrap { width: 100%; height: 100%; }
+  #canvas-media-wrap img, #canvas-media-wrap video { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; transform: scale(1); transform-origin: center; pointer-events: none; display: block; }
+  #canvas-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #2a2a2a; }
+  #canvas-empty .big-plus { font-size: 3rem; }
+  #canvas-empty p { font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; }
+  #canvas-area.drag-over { background: #1a1a1a; }
+  #canvas-area.drag-over #canvas-empty { color: #555; }
 
-  /* Controls overlay */
-  .slot-controls { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); opacity: 0; transition: opacity 0.15s; pointer-events: none; z-index: 10; }
-  .slot:hover .slot-controls { opacity: 1; pointer-events: all; }
-  .slot-controls .slot-id { font-size: 0.58rem; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
-  .slot-controls .ctrl-btns { display: flex; gap: 4px; }
-  .ctrl-btn { background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 22px; height: 22px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .ctrl-btn:hover { background: rgba(255,255,255,0.2); }
-  .ctrl-btn.del:hover { background: rgba(255, 60, 60, 0.7); }
+  /* Filmstrip */
+  #filmstrip-wrap { height: 110px; background: #111; border-top: 1px solid #1e1e1e; display: flex; align-items: center; flex-shrink: 0; overflow: hidden; }
+  #filmstrip { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; height: 100%; align-items: center; flex: 1; scroll-behavior: smooth; }
+  #filmstrip::-webkit-scrollbar { height: 3px; }
+  #filmstrip::-webkit-scrollbar-track { background: #111; }
+  #filmstrip::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-  .zoom-hint { position: absolute; bottom: 6px; right: 8px; font-size: 0.55rem; color: rgba(255,255,255,0.3); pointer-events: none; opacity: 0; transition: opacity 0.15s; }
-  .slot.filled:hover .zoom-hint { opacity: 1; }
+  .thumb { width: 130px; height: 82px; flex-shrink: 0; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid #222; position: relative; background: #1a1a1a; transition: border-color 0.15s; }
+  .thumb:hover { border-color: #555; }
+  .thumb.active { border-color: #fff; }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; }
+  .thumb .thumb-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: none; color: #fff; width: 20px; height: 20px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 2; }
+  .thumb:hover .thumb-del { display: flex; }
+  .thumb .thumb-del:hover { background: rgba(220,40,40,0.85); }
+  .thumb .thumb-idx { position: absolute; bottom: 4px; left: 6px; font-size: 0.6rem; color: rgba(255,255,255,0.35); pointer-events: none; }
 
-  /* Add slot */
-  .slot.add-slot { border: 2px dashed #222; cursor: pointer; }
-  .slot.add-slot:hover { border-color: #444; }
-  .slot.add-slot .empty-inner .plus-icon { color: #2a2a2a; }
-  .slot.add-slot:hover .empty-inner .plus-icon { color: #444; }
+  .thumb-add { width: 130px; height: 82px; flex-shrink: 0; border-radius: 6px; border: 2px dashed #2a2a2a; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #2a2a2a; font-size: 1.4rem; transition: all 0.15s; }
+  .thumb-add:hover { border-color: #555; color: #555; }
 
-  .warning-bar { background: #1a1100; border: 1px solid #332200; border-radius: 6px; padding: 10px 14px; font-size: 0.75rem; color: #886600; margin-bottom: 20px; }
+  .warn { background: #191200; border: 1px solid #332800; color: #886622; border-radius: 6px; padding: 10px 16px; font-size: 0.74rem; margin-bottom: 16px; }
 </style>
 </head>
 <body>
 
-<header>
+<!-- HEADER -->
+<div id="header">
   <h1>Portfolio Editor</h1>
-  <input id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
+  <input class="token-input" id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
   <button class="btn primary" onclick="loadPortfolio()">Load</button>
   <button class="btn green" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
   <span id="status">Enter token and click Load</span>
-</header>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab(0)">Portfolio 1</div>
-  <div class="tab" onclick="switchTab(1)">Portfolio 2</div>
 </div>
 
-<div id="editor">
-  <div class="portfolio-grid active" id="grid-0"></div>
-  <div class="portfolio-grid" id="grid-1"></div>
+<!-- APP -->
+<div id="app">
+
+  <!-- GRID VIEW -->
+  <div id="grid-view">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0)">Portfolio 1</div>
+      <div class="tab" onclick="switchTab(1)">Portfolio 2</div>
+    </div>
+    <div class="warn">Files over 25 MB cannot be uploaded via the GitHub API — compress large videos first.</div>
+    <div class="sections-grid" id="sections-grid-0"></div>
+    <div class="sections-grid" id="sections-grid-1" style="display:none"></div>
+  </div>
+
+  <!-- CANVAS EDITOR OVERLAY -->
+  <div id="canvas-editor">
+    <div id="canvas-header">
+      <span class="back-btn" onclick="closeCanvasEditor()">←</span>
+      <span class="canvas-title" id="canvas-title">Gallery</span>
+      <span class="slide-info" id="slide-info"></span>
+      <span class="zoom-display" id="zoom-display">100%</span>
+      <button class="btn" onclick="resetCurrentSlide()">Reset</button>
+    </div>
+
+    <div id="canvas-area">
+      <div id="canvas-media-wrap"></div>
+      <div id="canvas-empty"><span class="big-plus">+</span><p>Drop or click to add</p></div>
+    </div>
+
+    <div id="filmstrip-wrap">
+      <div id="filmstrip"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-const REPO = 'daniellesasi/Portfolio';
+const REPO   = 'daniellesasi/Portfolio';
 const BRANCH = 'main';
-const PORTFOLIOS = ['a1', 'a2'];
-const SECTIONS = 7;
-const BASE_URL = 'https://daniellesasi.github.io/Portfolio/';
+const PORTS  = ['a1', 'a2'];
+const N_SECTIONS = 7;
+const BASE   = 'https://daniellesasi.github.io/Portfolio/';
 
-// state[id] = { file, filename, base64, fileType, preview, posX, posY, scale, deleted, modified }
-let state = {};
-let indexSha = '';
-let currentIndexHTML = '';
-let token = '';
+let token = '', indexSha = '', currentHTML = '';
+let activeTab = 0;
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
-function getToken() {
+// sections[sectionId] = [ { src, type, posX, posY, scale, base64, filename, preview, deleted } ]
+let sections = {};
+let activeSection = null;
+let activeSlideIdx = 0;
+
+// ── AUTH / STATUS ──────────────────────────────────────────────────────────────
+const getToken = () => {
   token = document.getElementById('tokenInput').value.trim() || localStorage.getItem('gh_token') || '';
   document.getElementById('tokenInput').value = token;
   if (token) localStorage.setItem('gh_token', token);
   return token;
-}
+};
+const setStatus = (msg, cls = '') => { const el = document.getElementById('status'); el.textContent = msg; el.className = cls; };
 
-function setStatus(msg, type = '') {
-  const el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = type;
-}
+// ── GITHUB API ─────────────────────────────────────────────────────────────────
+const ghFetch = (path, opts = {}) => fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+  headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json', ...opts.headers }, ...opts
+});
 
-// ─── GITHUB API ────────────────────────────────────────────────────────────────
-async function ghFetch(path, opts = {}) {
-  return fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
-    headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json', ...opts.headers },
-    ...opts
-  });
-}
-
-// ─── LOAD ──────────────────────────────────────────────────────────────────────
+// ── LOAD ───────────────────────────────────────────────────────────────────────
 async function loadPortfolio() {
   if (!getToken()) { setStatus('Enter your GitHub token first', 'err'); return; }
   setStatus('Loading…');
   try {
     const res = await ghFetch('index.html');
-    if (!res.ok) throw new Error(res.status === 401 ? 'Invalid token' : 'Could not load index.html');
+    if (!res.ok) throw new Error(res.status === 401 ? 'Invalid token' : 'Could not fetch index.html');
     const data = await res.json();
     indexSha = data.sha;
-    currentIndexHTML = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-    state = {};
-    renderGrids();
+    currentHTML = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+    parsePortfolio();
+    renderGrid();
     document.getElementById('saveBtn').disabled = false;
     setStatus('Loaded ✓', 'ok');
-  } catch(e) {
-    setStatus('Error: ' + e.message, 'err');
-  }
+  } catch(e) { setStatus('Error: ' + e.message, 'err'); }
 }
 
-// ─── RENDER ────────────────────────────────────────────────────────────────────
-function renderGrids() {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(currentIndexHTML, 'text/html');
-  PORTFOLIOS.forEach((port, pi) => {
-    const grid = document.getElementById(`grid-${pi}`);
-    grid.innerHTML = `<div class="warning-bar">Drag & drop files onto slots • Drag filled slots to pan • Scroll to zoom • Max 25 MB per file</div>`;
-    for (let b = 1; b <= SECTIONS; b++) {
-      const sId = `${port}b${b}`;
-      const section = doc.getElementById(sId);
-      const row = document.createElement('div');
-      row.className = 'section-row';
-      row.innerHTML = `<div class="section-label">Gallery ${b}</div>`;
-      const slotsEl = document.createElement('div');
-      slotsEl.className = 'slots';
-      slotsEl.dataset.section = sId;
-      const media = section ? Array.from(section.querySelectorAll('img, video')) : [];
-      media.forEach((el, ci) => {
-        const cId = `${sId}c${ci + 1}`;
-        const src = el.getAttribute('src') || '';
-        const style = el.getAttribute('style') || '';
-        const posMatch = style.match(/object-position:\s*([^;]+)/);
-        const scaleMatch = style.match(/scale\(([\d.]+)\)/);
-        state[cId] = state[cId] || {
-          src, fileType: el.tagName.toLowerCase(),
-          posX: posMatch ? parseFloat(posMatch[1]) : 50,
-          posY: posMatch ? parseFloat(posMatch[1].split(' ')[1] || 50) : 50,
-          scale: scaleMatch ? parseFloat(scaleMatch[1]) : 1,
-          existing: true
-        };
-        slotsEl.appendChild(buildSlot(cId, BASE_URL + src, el.tagName.toLowerCase()));
-      });
-      slotsEl.appendChild(buildAddSlot(sId, media.length + 1));
-      row.appendChild(slotsEl);
-      grid.appendChild(row);
+function parsePortfolio() {
+  sections = {};
+  const doc = new DOMParser().parseFromString(currentHTML, 'text/html');
+  PORTS.forEach(port => {
+    for (let b = 1; b <= N_SECTIONS; b++) {
+      const id = `${port}b${b}`;
+      const sec = doc.getElementById(id);
+      const slides = [];
+      if (sec) {
+        sec.querySelectorAll('img, video').forEach(el => {
+          const style = el.getAttribute('style') || '';
+          const pm = style.match(/object-position:\s*([\d.]+)%\s+([\d.]+)%/);
+          const sm = style.match(/scale\(([\d.]+)\)/);
+          slides.push({ src: el.getAttribute('src') || '', type: el.tagName.toLowerCase(), posX: pm ? +pm[1] : 50, posY: pm ? +pm[2] : 50, scale: sm ? +sm[1] : 1 });
+        });
+      }
+      sections[id] = slides;
     }
   });
 }
 
-// ─── SLOT BUILDER ──────────────────────────────────────────────────────────────
-function buildSlot(id, src, type) {
-  const slot = document.createElement('div');
-  slot.className = 'slot filled';
-  slot.dataset.id = id;
-
-  const wrap = document.createElement('div');
-  wrap.className = 'media-wrap';
-
-  const el = document.createElement(type);
-  el.src = src;
-  if (type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; }
-  const s = state[id] || {};
-  el.style.objectPosition = `${s.posX ?? 50}% ${s.posY ?? 50}%`;
-  el.style.transform = `scale(${s.scale ?? 1})`;
-  wrap.appendChild(el);
-
-  const controls = document.createElement('div');
-  controls.className = 'slot-controls';
-  controls.innerHTML = `
-    <span class="slot-id">${id}</span>
-    <div class="ctrl-btns">
-      <button class="ctrl-btn" title="Reset position" onclick="resetSlot(event,'${id}')">↺</button>
-      <button class="ctrl-btn" title="Replace file" onclick="openPicker(event,'${id}')">↑</button>
-      <button class="ctrl-btn del" title="Delete" onclick="deleteSlot(event,'${id}')">✕</button>
-    </div>`;
-
-  slot.innerHTML = `<div class="zoom-hint">scroll to zoom</div>`;
-  slot.appendChild(wrap);
-  slot.appendChild(controls);
-
-  attachInteractions(slot, id);
-  return slot;
-}
-
-function buildAddSlot(sectionId, nextC) {
-  const id = `${sectionId}c${nextC}`;
-  const slot = document.createElement('div');
-  slot.className = 'slot empty add-slot';
-  slot.dataset.id = id;
-  slot.innerHTML = `<div class="empty-inner"><span class="plus-icon">+</span><span class="drop-hint">Drop or click</span></div>`;
-  slot.addEventListener('click', () => triggerPicker(id, slot, true));
-  addDropZone(slot, id, true);
-  return slot;
-}
-
-// ─── INTERACTIONS ──────────────────────────────────────────────────────────────
-function attachInteractions(slot, id) {
-  let dragging = false, ox = 0, oy = 0, moved = false;
-
-  slot.addEventListener('mousedown', e => {
-    if (e.target.closest('.ctrl-btn')) return;
-    dragging = true; moved = false;
-    ox = e.clientX; oy = e.clientY;
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!dragging || slot.dataset.id !== id) return;
-    const dx = e.clientX - ox, dy = e.clientY - oy;
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
-    ox = e.clientX; oy = e.clientY;
-    const s = state[id] || {};
-    s.posX = Math.max(0, Math.min(100, (s.posX ?? 50) - dx * 0.3));
-    s.posY = Math.max(0, Math.min(100, (s.posY ?? 50) - dy * 0.3));
-    state[id] = s;
-    applyTransform(slot, id);
-    markChanged(slot, id);
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (dragging && !moved && slot.dataset.id === id) {
-      // treat as click to replace if empty, or just release
+// ── GRID ───────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  PORTS.forEach((port, pi) => {
+    const grid = document.getElementById(`sections-grid-${pi}`);
+    grid.innerHTML = '';
+    for (let b = 1; b <= N_SECTIONS; b++) {
+      const id = `${port}b${b}`;
+      const slides = sections[id] || [];
+      const first = slides.find(s => !s.deleted);
+      const card = document.createElement('div');
+      card.className = 'section-card';
+      card.onclick = () => openCanvasEditor(id);
+      const preview = first
+        ? (first.type === 'video'
+            ? `<video src="${first.preview || BASE + first.src}" muted autoplay loop playsinline></video>`
+            : `<img src="${first.preview || BASE + first.src}">`)
+        : '';
+      const count = slides.filter(s => !s.deleted).length;
+      card.innerHTML = `
+        <div class="preview">
+          ${preview}
+          <span class="count-badge">${count} slide${count !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="card-footer">
+          <span class="card-label">Gallery ${b}</span>
+          <span class="edit-hint">Click to edit →</span>
+        </div>`;
+      grid.appendChild(card);
     }
-    dragging = false;
   });
-
-  slot.addEventListener('wheel', e => {
-    e.preventDefault();
-    const s = state[id] || {};
-    s.scale = Math.max(0.5, Math.min(4, (s.scale ?? 1) + (e.deltaY < 0 ? 0.05 : -0.05)));
-    state[id] = s;
-    applyTransform(slot, id);
-    markChanged(slot, id);
-  }, { passive: false });
-
-  addDropZone(slot, id, false);
 }
 
-function applyTransform(slot, id) {
-  const s = state[id] || {};
-  const el = slot.querySelector('img, video');
-  if (!el) return;
-  el.style.objectPosition = `${(s.posX ?? 50).toFixed(1)}% ${(s.posY ?? 50).toFixed(1)}%`;
-  el.style.transform = `scale(${(s.scale ?? 1).toFixed(3)})`;
+function switchTab(i) {
+  activeTab = i;
+  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
+  document.querySelectorAll('.sections-grid').forEach((g, gi) => g.style.display = gi === i ? '' : 'none');
 }
 
-function markChanged(slot, id) {
-  slot.classList.add('changed');
-  if (state[id]) state[id].modified = true;
+// ── CANVAS EDITOR ──────────────────────────────────────────────────────────────
+function openCanvasEditor(sectionId) {
+  activeSection = sectionId;
+  activeSlideIdx = 0;
+  const bNum = sectionId.match(/b(\d+)/)[1];
+  document.getElementById('canvas-title').textContent = `Gallery ${bNum}`;
+  document.getElementById('canvas-editor').classList.add('open');
+  renderFilmstrip();
+  showSlide(0);
 }
 
-function resetSlot(e, id) {
-  e.stopPropagation();
-  const s = state[id] || {};
-  s.posX = 50; s.posY = 50; s.scale = 1; s.modified = true;
-  state[id] = s;
-  const slot = document.querySelector(`.slot[data-id="${id}"]`);
-  applyTransform(slot, id);
-  markChanged(slot, id);
+function closeCanvasEditor() {
+  document.getElementById('canvas-editor').classList.remove('open');
+  renderGrid();
 }
 
-function deleteSlot(e, id) {
-  e.stopPropagation();
-  if (!confirm(`Delete ${id} from portfolio?`)) return;
-  state[id] = { ...state[id], deleted: true };
-  const slot = document.querySelector(`.slot[data-id="${id}"]`);
-  if (slot) {
-    slot.style.opacity = '0.3';
-    slot.style.pointerEvents = 'none';
-    slot.style.borderColor = '#ff4444';
+function renderFilmstrip() {
+  const strip = document.getElementById('filmstrip');
+  strip.innerHTML = '';
+  const slides = sections[activeSection] || [];
+  slides.forEach((slide, i) => {
+    if (slide.deleted) return;
+    strip.appendChild(buildThumb(slide, i));
+  });
+  const addThumb = document.createElement('div');
+  addThumb.className = 'thumb-add';
+  addThumb.innerHTML = '+';
+  addThumb.onclick = () => triggerFilePicker();
+  // Drop onto add thumb
+  addThumb.addEventListener('dragover', e => { e.preventDefault(); addThumb.style.borderColor = '#fff'; });
+  addThumb.addEventListener('dragleave', () => addThumb.style.borderColor = '');
+  addThumb.addEventListener('drop', e => { e.preventDefault(); addThumb.style.borderColor = ''; handleFiles(e.dataTransfer.files); });
+  strip.appendChild(addThumb);
+}
+
+function buildThumb(slide, idx) {
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb' + (idx === activeSlideIdx ? ' active' : '');
+  thumb.dataset.idx = idx;
+  const src = slide.preview || (slide.src ? BASE + slide.src : '');
+  if (src) {
+    const el = document.createElement(slide.type);
+    el.src = src;
+    if (slide.type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; }
+    thumb.appendChild(el);
   }
-  setStatus(`${id} marked for deletion`, 'ok');
+  thumb.innerHTML += `<button class="thumb-del" onclick="deleteSlide(event,${idx})">✕</button><span class="thumb-idx">${idx + 1}</span>`;
+  thumb.addEventListener('click', e => { if (!e.target.classList.contains('thumb-del')) showSlide(idx); });
+  return thumb;
 }
 
-function openPicker(e, id) {
+function showSlide(idx) {
+  const slides = (sections[activeSection] || []).filter(s => !s.deleted);
+  if (!slides.length) {
+    document.getElementById('canvas-media-wrap').innerHTML = '';
+    document.getElementById('canvas-empty').style.display = 'flex';
+    document.getElementById('slide-info').textContent = 'No slides';
+    return;
+  }
+  idx = Math.max(0, Math.min(slides.length - 1, idx));
+
+  // Map to real index in sections array
+  let realIdx = -1, count = 0;
+  (sections[activeSection] || []).forEach((s, i) => { if (!s.deleted) { if (count === idx) realIdx = i; count++; } });
+  activeSlideIdx = realIdx;
+
+  const slide = sections[activeSection][realIdx];
+  const src = slide.preview || (slide.src ? BASE + slide.src : '');
+  const wrap = document.getElementById('canvas-media-wrap');
+  wrap.innerHTML = '';
+  document.getElementById('canvas-empty').style.display = 'none';
+
+  if (src) {
+    const el = document.createElement(slide.type);
+    el.src = src;
+    if (slide.type === 'video') { el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true; }
+    el.style.objectPosition = `${slide.posX}% ${slide.posY}%`;
+    el.style.transform = `scale(${slide.scale})`;
+    wrap.appendChild(el);
+  }
+
+  document.getElementById('slide-info').textContent = `${idx + 1} / ${slides.length}`;
+  document.getElementById('zoom-display').textContent = `${Math.round((slide.scale || 1) * 100)}%`;
+
+  // Update filmstrip highlight
+  document.querySelectorAll('.thumb').forEach((t, ti) => t.classList.toggle('active', +t.dataset.idx === realIdx));
+}
+
+function deleteSlide(e, idx) {
   e.stopPropagation();
-  const slot = document.querySelector(`.slot[data-id="${id}"]`);
-  triggerPicker(id, slot, false);
+  if (!confirm('Remove this slide?')) return;
+  sections[activeSection][idx].deleted = true;
+  const visIdx = sections[activeSection].slice(0, idx).filter(s => !s.deleted).length;
+  renderFilmstrip();
+  showSlide(Math.max(0, visIdx - 1));
 }
 
-function triggerPicker(id, slot, isNew) {
+function resetCurrentSlide() {
+  const slide = sections[activeSection]?.[activeSlideIdx];
+  if (!slide) return;
+  slide.posX = 50; slide.posY = 50; slide.scale = 1; slide.modified = true;
+  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
+  if (el) { el.style.objectPosition = '50% 50%'; el.style.transform = 'scale(1)'; }
+  document.getElementById('zoom-display').textContent = '100%';
+}
+
+// ── PAN / ZOOM ─────────────────────────────────────────────────────────────────
+let pan = { active: false, ox: 0, oy: 0 };
+const canvasArea = document.getElementById('canvas-area');
+
+canvasArea.addEventListener('mousedown', e => {
+  if (e.target.closest('#canvas-empty')) return;
+  pan.active = true; pan.ox = e.clientX; pan.oy = e.clientY;
+  canvasArea.classList.add('grabbing');
+});
+
+document.addEventListener('mousemove', e => {
+  if (!pan.active) return;
+  const slide = sections[activeSection]?.[activeSlideIdx];
+  if (!slide) return;
+  const dx = e.clientX - pan.ox, dy = e.clientY - pan.oy;
+  pan.ox = e.clientX; pan.oy = e.clientY;
+  slide.posX = Math.max(0, Math.min(100, slide.posX - dx * 0.15));
+  slide.posY = Math.max(0, Math.min(100, slide.posY - dy * 0.15));
+  slide.modified = true;
+  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
+  if (el) el.style.objectPosition = `${slide.posX.toFixed(1)}% ${slide.posY.toFixed(1)}%`;
+});
+
+document.addEventListener('mouseup', () => { pan.active = false; canvasArea.classList.remove('grabbing'); });
+
+canvasArea.addEventListener('wheel', e => {
+  e.preventDefault();
+  const slide = sections[activeSection]?.[activeSlideIdx];
+  if (!slide) return;
+  slide.scale = Math.max(0.3, Math.min(5, slide.scale + (e.deltaY < 0 ? 0.04 : -0.04)));
+  slide.modified = true;
+  const el = document.querySelector('#canvas-media-wrap img, #canvas-media-wrap video');
+  if (el) el.style.transform = `scale(${slide.scale.toFixed(3)})`;
+  document.getElementById('zoom-display').textContent = `${Math.round(slide.scale * 100)}%`;
+}, { passive: false });
+
+// Drop files onto canvas
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); canvasArea.classList.add('drag-over'); });
+canvasArea.addEventListener('dragleave', e => { if (!canvasArea.contains(e.relatedTarget)) canvasArea.classList.remove('drag-over'); });
+canvasArea.addEventListener('drop', e => { e.preventDefault(); canvasArea.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+canvasArea.querySelector('#canvas-empty').addEventListener('click', () => triggerFilePicker());
+
+// ── FILE HANDLING ──────────────────────────────────────────────────────────────
+function triggerFilePicker(multi = true) {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*,video/*';
-  input.onchange = () => { if (input.files[0]) handleFile(id, slot, input.files[0], isNew); };
+  input.type = 'file'; input.accept = 'image/*,video/*'; input.multiple = multi;
+  input.onchange = () => handleFiles(input.files);
   input.click();
 }
 
-function addDropZone(slot, id, isNew) {
-  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
-  slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
-  slot.addEventListener('drop', e => {
-    e.preventDefault(); slot.classList.remove('dragover');
-    if (e.dataTransfer.files[0]) handleFile(id, slot, e.dataTransfer.files[0], isNew);
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (file.size > 25 * 1024 * 1024) { setStatus(`${file.name} is too large (${(file.size/1024/1024).toFixed(0)}MB). Max 25MB.`, 'err'); return; }
+    const ext = file.name.split('.').pop().toLowerCase();
+    const slides = sections[activeSection];
+    const nextC = slides.length + 1;
+    const filename = `${activeSection}c${nextC}.${ext}`;
+    const isVideo = file.type.startsWith('video');
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const slide = { src: '', type: isVideo ? 'video' : 'img', posX: 50, posY: 50, scale: 1, base64: ev.target.result.split(',')[1], filename, preview: ev.target.result, modified: true };
+      sections[activeSection].push(slide);
+      renderFilmstrip();
+      showSlide(sections[activeSection].filter(s => !s.deleted).length - 1);
+      setStatus(`${filename} added`, 'ok');
+    };
+    reader.readAsDataURL(file);
   });
 }
 
-// ─── FILE HANDLER ──────────────────────────────────────────────────────────────
-function handleFile(id, slot, file, isNew) {
-  if (file.size > 25 * 1024 * 1024) {
-    setStatus(`${file.name} is ${(file.size/1024/1024).toFixed(0)}MB — max 25MB. Compress it first.`, 'err');
-    return;
-  }
-  const ext = file.name.split('.').pop().toLowerCase();
-  const filename = `${id}.${ext}`;
-  const isVideo = file.type.startsWith('video');
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const base64 = ev.target.result.split(',')[1];
-    const prev = state[id] || {};
-    state[id] = { ...prev, file, filename, base64, fileType: isVideo ? 'video' : 'img', preview: ev.target.result, posX: prev.posX ?? 50, posY: prev.posY ?? 50, scale: prev.scale ?? 1, modified: true };
-
-    // Rebuild slot
-    const newSlot = buildSlot(id, ev.target.result, isVideo ? 'video' : 'img');
-    newSlot.classList.add('changed');
-    slot.replaceWith(newSlot);
-
-    if (isNew) {
-      const sectionId = id.replace(/c\d+$/, '');
-      const nextC = parseInt(id.match(/c(\d+)$/)[1]) + 1;
-      newSlot.after(buildAddSlot(sectionId, nextC));
-    }
-    setStatus(`${filename} ready`, 'ok');
-  };
-  reader.readAsDataURL(file);
-}
-
-// ─── SAVE ──────────────────────────────────────────────────────────────────────
+// ── SAVE ───────────────────────────────────────────────────────────────────────
 async function saveAll() {
   if (!getToken()) { setStatus('No token', 'err'); return; }
-  const toUpload = Object.entries(state).filter(([, s]) => s.base64 && !s.deleted);
-  const toDelete = Object.entries(state).filter(([, s]) => s.deleted);
-  const toUpdate = Object.entries(state).filter(([, s]) => s.modified && !s.base64 && !s.deleted);
-
-  if (!toUpload.length && !toDelete.length && !toUpdate.length) {
-    setStatus('No changes to save', ''); return;
-  }
-
   document.getElementById('saveBtn').disabled = true;
-  let done = 0;
-  const total = toUpload.length;
 
-  for (const [id, s] of toUpload) {
-    setStatus(`Uploading ${s.filename} (${++done}/${total})…`);
+  const uploads = [];
+  Object.values(sections).forEach(slides => slides.forEach(s => { if (s.base64) uploads.push(s); }));
+
+  let done = 0;
+  for (const s of uploads) {
+    setStatus(`Uploading ${s.filename} (${++done}/${uploads.length})…`);
     try {
-      const existing = await ghFetch(s.filename);
-      const sha = existing.ok ? (await existing.json()).sha : undefined;
-      const body = { message: `Update ${s.filename}`, content: s.base64, branch: BRANCH };
+      const ex = await ghFetch(s.filename);
+      const sha = ex.ok ? (await ex.json()).sha : undefined;
+      const body = { message: `Upload ${s.filename}`, content: s.base64, branch: BRANCH };
       if (sha) body.sha = sha;
       const res = await ghFetch(s.filename, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(await res.text());
-    } catch(e) {
-      setStatus(`Upload failed: ${e.message}`, 'err');
-      document.getElementById('saveBtn').disabled = false;
-      return;
-    }
+      s.src = s.filename; delete s.base64;
+    } catch(e) { setStatus('Upload failed: ' + e.message, 'err'); document.getElementById('saveBtn').disabled = false; return; }
   }
 
   setStatus('Updating index.html…');
   try {
-    await updateIndexHTML();
-    setStatus(`✓ Saved ${done} file(s)`, 'ok');
-    // Clear upload state, keep transform state
-    Object.keys(state).forEach(id => { if (state[id]) { delete state[id].base64; delete state[id].file; delete state[id].modified; } });
-  } catch(e) {
-    setStatus('Failed to update index.html: ' + e.message, 'err');
-  }
+    await pushIndexHTML();
+    setStatus(`✓ Saved ${uploads.length} file(s)`, 'ok');
+  } catch(e) { setStatus('index.html update failed: ' + e.message, 'err'); }
   document.getElementById('saveBtn').disabled = false;
+  renderGrid();
 }
 
-async function updateIndexHTML() {
+async function pushIndexHTML() {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(currentIndexHTML, 'text/html');
+  const doc = parser.parseFromString(currentHTML, 'text/html');
 
-  for (const [id, s] of Object.entries(state)) {
-    const sectionId = id.replace(/c\d+$/, '');
-    const cNum = parseInt(id.match(/c(\d+)$/)[1]) - 1;
-    const section = doc.getElementById(sectionId);
-    if (!section) continue;
+  Object.entries(sections).forEach(([id, slides]) => {
+    const section = doc.getElementById(id);
+    if (!section) return;
     const gallery = section.querySelector('.horizontal-gallery');
-    if (!gallery) continue;
-    const allMedia = gallery.querySelectorAll('img, video');
-
-    const styleStr = `object-position: ${(s.posX??50).toFixed(1)}% ${(s.posY??50).toFixed(1)}%; transform: scale(${(s.scale??1).toFixed(3)});`;
-
-    if (s.deleted) {
-      allMedia[cNum]?.remove();
-      continue;
-    }
-
-    if (s.base64 || s.modified) {
-      const filename = s.filename || (allMedia[cNum]?.getAttribute('src'));
-      if (!filename) continue;
-      const type = s.fileType || allMedia[cNum]?.tagName.toLowerCase();
-
-      if (allMedia[cNum]) {
-        allMedia[cNum].setAttribute('src', filename);
-        allMedia[cNum].setAttribute('style', styleStr);
-      } else {
-        const newEl = doc.createElement(type === 'video' ? 'video' : 'img');
-        newEl.setAttribute('src', filename);
-        newEl.setAttribute('style', styleStr);
-        if (type === 'video') { newEl.autoplay = true; newEl.loop = true; newEl.muted = true; newEl.setAttribute('playsinline',''); }
-        else { newEl.setAttribute('loading', 'lazy'); newEl.setAttribute('alt', ''); }
-        gallery.appendChild(newEl);
-      }
-    } else if (s.existing && (s.posX !== 50 || s.posY !== 50 || s.scale !== 1)) {
-      allMedia[cNum]?.setAttribute('style', styleStr);
-    }
-  }
+    if (!gallery) return;
+    gallery.innerHTML = '\n                    ';
+    slides.filter(s => !s.deleted).forEach(s => {
+      const el = doc.createElement(s.type);
+      el.setAttribute('src', s.filename || s.src);
+      const style = `object-position: ${s.posX.toFixed(1)}% ${s.posY.toFixed(1)}%; transform: scale(${s.scale.toFixed(3)});`;
+      el.setAttribute('style', style);
+      if (s.type === 'video') { el.setAttribute('autoplay',''); el.setAttribute('loop',''); el.setAttribute('muted',''); el.setAttribute('playsinline',''); }
+      else { el.setAttribute('loading','lazy'); el.setAttribute('alt',''); }
+      gallery.appendChild(el);
+      gallery.appendChild(doc.createTextNode('\n                    '));
+    });
+  });
 
   const newHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
   const encoded = btoa(unescape(encodeURIComponent(newHTML)));
-  const res = await ghFetch('index.html', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Update portfolio via editor', content: encoded, sha: indexSha, branch: BRANCH })
-  });
+  const res = await ghFetch('index.html', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Update portfolio', content: encoded, sha: indexSha, branch: BRANCH }) });
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
   indexSha = data.content.sha;
-  currentIndexHTML = newHTML;
+  currentHTML = newHTML;
 }
 
-// ─── TABS ──────────────────────────────────────────────────────────────────────
-function switchTab(i) {
-  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
-  document.querySelectorAll('.portfolio-grid').forEach((g, gi) => g.classList.toggle('active', gi === i));
-}
-
-window.onload = () => {
-  const saved = localStorage.getItem('gh_token');
-  if (saved) document.getElementById('tokenInput').value = saved;
-};
+window.onload = () => { const t = localStorage.getItem('gh_token'); if (t) document.getElementById('tokenInput').value = t; };
 </script>
 </body>
 </html>
