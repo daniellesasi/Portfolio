@@ -482,7 +482,7 @@ async function saveAll(){
   $('saveBtn').disabled=false; renderGrid();
 }
 
-async function pushHTML(){
+function buildHTML(){
   let html=idxHTML;
   Object.entries(sections).forEach(([id,slides])=>{
     let galContent='';
@@ -499,15 +499,28 @@ async function pushHTML(){
       frame+='</div>\n                    ';
       galContent+=frame;
     });
-    // Replace only the gallery innerHTML — never re-serialize the full document (corrupts CSS)
     html=html.replace(
       new RegExp(`(<section[^>]+id="${id}"[\\s\\S]*?<div[^>]+class="horizontal-gallery"[^>]*>)[\\s\\S]*?(</div>\\s*</section>)`),
       `$1\n                    ${galContent}$2`
     );
   });
+  return html;
+}
+
+async function pushHTML(){
+  const html=buildHTML();
   const enc=btoa(unescape(encodeURIComponent(html)));
-  const res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha:idxSha,branch:BRANCH})});
-  if(!res.ok)throw new Error(await res.text());
+  let sha=idxSha;
+  // If sha is stale (conflict), fetch fresh sha and retry once
+  let res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha,branch:BRANCH})});
+  if(res.status===409||res.status===422){
+    st('Conflict — fetching latest sha…');
+    const fresh=await gh('index.html');
+    if(!fresh.ok) throw new Error('Could not refresh sha');
+    sha=(await fresh.json()).sha;
+    res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha,branch:BRANCH})});
+  }
+  if(!res.ok) throw new Error(await res.text());
   const d=await res.json(); idxSha=d.content.sha; idxHTML=html;
 }
 
