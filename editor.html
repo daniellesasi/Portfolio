@@ -193,6 +193,8 @@ function parseHTML(){
         // New structure: .canvas-frame elements
         sec.querySelectorAll('.canvas-frame').forEach(frame=>{
           const layers=[];
+          const fs=frame.getAttribute('style')||'';
+          const bg=(fs.match(/background:\s*([^;]+)/)||[,'#000'])[1].trim();
           frame.querySelectorAll('img,video').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
             const lx=parseFloat((s.match(/left:([\d.]+)%/)||[,0])[1]);
@@ -203,7 +205,7 @@ function parseHTML(){
             const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
             layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover'});
           });
-          slides.push({layers});
+          slides.push({layers,bg});
         });
         // Legacy: direct img/video
         if(!slides.length){
@@ -282,10 +284,13 @@ function showSlide(i){
   i=Math.max(0,Math.min(slides.length-1,i));
   activeSlide=i; selId=null; hideSel();
   $('slide-lbl').textContent=`Slide ${i+1} / ${slides.length}`;
-  const c=$('canvas');
+  const c=$('canvas'), btn=$('bgToggle');
+  const slide=slides[i];
+  const isWhite=(slide?.bg||'#000')==='#fff';
+  c.classList.toggle('bg-white',isWhite);
+  btn.textContent=isWhite?'⬜ White':'⬛ Black';
   // Remove all media layers (keep sel-box)
   Array.from(c.querySelectorAll('[data-lid]')).forEach(el=>el.remove());
-  const slide=slides[i];
   if(slide?.layers) slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>c.appendChild(buildLayerEl(layer)));
   // update filmstrip highlight
   document.querySelectorAll('.th').forEach((t,ti)=>t.classList.toggle('act',ti===i));
@@ -483,7 +488,8 @@ async function pushHTML(){
     let galContent='';
     slides.forEach(slide=>{
       if(!slide.layers?.length)return;
-      let frame='<div class="canvas-frame">';
+      const bgStyle=slide.bg&&slide.bg!=='#000'?` style="background:${slide.bg}"`:'';
+      let frame=`<div class="canvas-frame"${bgStyle}>`;
       slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
         const src=layer.filename||layer.src;
         const style=`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`;
@@ -509,6 +515,7 @@ function toggleCanvasBg(){
   const c=$('canvas'), btn=$('bgToggle');
   const isWhite=c.classList.toggle('bg-white');
   btn.textContent=isWhite?'⬜ White':'⬛ Black';
+  const slide=sections[activeSec]?.[activeSlide]; if(slide) slide.bg=isWhite?'#fff':'#000';
 }
 
 window.addEventListener('resize',()=>{ positionCanvas(); if(selId){const l=getLayer(selId);if(l)updateSelBox(l);} });
