@@ -90,9 +90,11 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 #fs { display:flex; gap:8px; padding:10px 14px; overflow-x:auto; height:100%; align-items:center; flex:1; }
 #fs::-webkit-scrollbar { height:3px; }
 #fs::-webkit-scrollbar-thumb { background:#777; border-radius:2px; }
-.th { width:120px; height:80px; flex-shrink:0; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid #666; position:relative; background:#555; transition:border-color .15s; }
+.th { width:120px; height:80px; flex-shrink:0; border-radius:6px; overflow:hidden; cursor:grab; border:2px solid #666; position:relative; background:#555; transition:border-color .15s, opacity .15s; }
 .th:hover { border-color:#999; }
 .th.act { border-color:#fff; }
+.th.drag-over { border-color:#00cc66; border-style:dashed; }
+.th.dragging { opacity:.3; cursor:grabbing; }
 .th canvas,.th img,.th video { width:100%; height:100%; object-fit:cover; pointer-events:none; display:block; }
 .th .th-del { position:absolute; top:3px; right:3px; background:rgba(0,0,0,.75); border:none; color:#fff; width:18px; height:18px; border-radius:3px; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2; }
 .th:hover .th-del { display:flex; }
@@ -268,10 +270,24 @@ function renderFilmstrip(){
   const slides=sections[activeSec]||[];
   slides.forEach((slide,i)=>{
     const th=document.createElement('div'); th.className='th'+(i===activeSlide?' act':''); th.dataset.i=i;
+    th.draggable=true;
     const first=slide.layers?.find(l=>l.src||l.preview);
     if(first){const src=first.preview||BASE+first.src; const el=document.createElement(first.type); el.src=src; if(first.type==='video'){el.muted=true;el.autoplay=true;el.loop=true;} th.appendChild(el);}
     th.innerHTML+=`<button class="th-del" onclick="delSlide(event,${i})">✕</button>`;
     th.onclick=e=>{if(!e.target.classList.contains('th-del'))showSlide(i);};
+    // drag-to-reorder
+    th.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',i);th.classList.add('dragging');});
+    th.addEventListener('dragend',()=>th.classList.remove('dragging'));
+    th.addEventListener('dragover',e=>{e.preventDefault();th.classList.add('drag-over');});
+    th.addEventListener('dragleave',()=>th.classList.remove('drag-over'));
+    th.addEventListener('drop',e=>{
+      e.preventDefault(); th.classList.remove('drag-over');
+      const from=parseInt(e.dataTransfer.getData('text/plain')), to=i;
+      if(from===to)return;
+      const arr=sections[activeSec];
+      arr.splice(to,0,arr.splice(from,1)[0]);
+      renderFilmstrip(); showSlide(to);
+    });
     fs.appendChild(th);
   });
   const add=document.createElement('div'); add.className='th-add'; add.innerHTML='+';
