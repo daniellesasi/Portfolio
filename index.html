@@ -33,6 +33,63 @@
         .canvas-frame { position: relative; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; scroll-snap-align: start; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; }
+
+        /* ── MOBILE ── */
+        #mobile-feed { display: none; }
+        #mobile-ui { display: none; }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            .portfolio-wrapper { display: none !important; }
+            .portfolio-switcher { display: none; }
+            .side-menu { display: none; }
+
+            #mobile-feed {
+                display: block;
+                height: 100vh; width: 100vw;
+                overflow-y: scroll;
+                overflow-x: hidden;
+                scroll-snap-type: y mandatory;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                background: #000;
+            }
+            #mobile-feed::-webkit-scrollbar { display: none; }
+            #mobile-feed .canvas-frame {
+                scroll-snap-align: start;
+                width: 100vw; height: 100vh;
+                flex-shrink: 0;
+            }
+
+            #mobile-ui {
+                display: flex;
+                position: fixed;
+                bottom: 36px; left: 50%;
+                transform: translateX(-50%);
+                gap: 14px; z-index: 300;
+                align-items: center;
+            }
+            .m-dot {
+                width: 10px; height: 10px;
+                border-radius: 50%;
+                background: #fff;
+                opacity: 0.35;
+                cursor: pointer;
+                transition: opacity .25s, background .25s;
+            }
+            .m-dot.active { opacity: 1; }
+
+            #mobile-gal-num {
+                position: fixed;
+                top: 36px; left: 36px;
+                font-family: 'Anton', sans-serif;
+                font-size: 2.1rem;
+                color: #fff;
+                z-index: 300;
+                letter-spacing: 1px;
+                opacity: 0;
+                transition: opacity .4s;
+            }
+        }
     </style>
 </head>
 <body>
@@ -169,6 +226,13 @@
         </main>
     </div>
 
+    <div id="mobile-feed"></div>
+    <div id="mobile-ui">
+        <div class="m-dot active" onclick="mobileSwitchPort(0)"></div>
+        <div class="m-dot" onclick="mobileSwitchPort(1)"></div>
+    </div>
+    <div id="mobile-gal-num">1</div>
+
     <script>
         document.fonts.load('1em Anton').then(() => {
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
@@ -254,6 +318,72 @@
             document.getElementById(targetId).classList.add('active');
             document.getElementById('btn-' + targetId).classList.add('active');
         }
+
+        // ── MOBILE ──────────────────────────────────────────────────────────
+        let mobilePortIdx = 0;
+        const isMobile = () => window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+
+        function buildMobileFeed(portIdx) {
+            mobilePortIdx = portIdx;
+            const feed = document.getElementById('mobile-feed');
+            feed.innerHTML = '';
+            // gallery number map: slideIndex → galleryNumber
+            window._mobileGalMap = [];
+
+            const port = portIdx === 0 ? 'port1' : 'port2';
+            document.querySelectorAll(`#${port} .project-section`).forEach((sec, gi) => {
+                sec.querySelectorAll('.canvas-frame').forEach(frame => {
+                    const slide = frame.cloneNode(true);
+                    // ensure videos autoplay silently
+                    slide.querySelectorAll('video').forEach(v => {
+                        v.muted = true; v.loop = true; v.setAttribute('playsinline',''); v.removeAttribute('autoplay');
+                    });
+                    feed.appendChild(slide);
+                    window._mobileGalMap.push(gi + 1);
+                });
+            });
+
+            // IntersectionObserver: play video when visible, update gallery number
+            const galNum = document.getElementById('mobile-gal-num');
+            document.fonts.load('1em Anton').then(() => galNum.style.opacity = '1');
+
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    const el = entry.target;
+                    el.querySelectorAll('video').forEach(v => entry.isIntersecting ? v.play() : v.pause());
+                    if (entry.isIntersecting) {
+                        const idx = Array.from(feed.children).indexOf(el);
+                        const gn = window._mobileGalMap[idx];
+                        if (gn !== undefined) {
+                            galNum.textContent = gn;
+                            // brightness detection for label color
+                            const media = el.querySelector('img, video');
+                            if (media) sampleMedia(media, bright => {
+                                galNum.style.color = bright ? '#000' : '#fff';
+                                document.querySelectorAll('.m-dot').forEach(d => d.style.background = bright ? '#000' : '#fff');
+                            });
+                        }
+                    }
+                });
+            }, { threshold: 0.6 });
+
+            Array.from(feed.children).forEach(slide => observer.observe(slide));
+
+            // update dots
+            document.querySelectorAll('.m-dot').forEach((d, i) => d.classList.toggle('active', i === portIdx));
+            feed.scrollTop = 0;
+        }
+
+        function mobileSwitchPort(idx) {
+            if (isMobile()) buildMobileFeed(idx);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isMobile()) buildMobileFeed(0);
+        });
+        window.addEventListener('resize', () => {
+            if (isMobile()) buildMobileFeed(mobilePortIdx);
+        });
     </script>
 
 
