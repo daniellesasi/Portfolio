@@ -163,7 +163,7 @@
                 <div class="horizontal-gallery" data-current-index="0">
                     <div class="canvas-frame bg-white"><img src="a1b4c1.webp" style="position:absolute;left:36.9%;top:0.0%;width:89.1%;height:112.3%;transform:rotate(0deg);z-index:1;object-fit:cover;" loading="lazy" alt=""><div class="txt-layer" style="position:absolute;left:9.3%;top:20.0%;width:26.5%;height:58.8%;transform:rotate(0deg);z-index:2;font-size:1vw;font-family:'sans-serif',sans-serif;color:#000000;text-align:left;font-weight:normal;font-style:normal;word-break:break-word;display:flex;align-items:center;padding:4px 8px;box-sizing:border-box;">This turn-based combat game concept details the character design and animation centered around unconventional warfare. Offering a humanistic take on daily situations, the game replaces physical violence with mental debates and social power games. Utilizing a distinct cel-shaded 2D aesthetic, the visual direction draws heavily from personal experience in the fashion industry, bringing functional styling to the garments. The result is a unique integration of high-fashion sensibilities with classic gaming aesthetics.</div><div class="txt-layer" style="position:absolute;left:9.0%;top:12.9%;width:28.4%;height:12.3%;transform:rotate(0deg);z-index:3;font-size:2.5vw;font-family:'monospace',sans-serif;color:#000000;text-align:center;font-weight:bold;font-style:normal;word-break:break-word;display:flex;align-items:center;padding:4px 8px;box-sizing:border-box;">HERO WORSHIP</div></div>
                     <div class="canvas-frame bg-white draft"><video src="a1b4c2.mp4" style="position:absolute;left:52.7%;top:51.2%;width:52.3%;height:52.5%;transform:rotate(0deg);z-index:3;object-fit:cover;" autoplay loop muted playsinline></video><img src="a1b4c3.png" style="position:absolute;left:0.0%;top:50.9%;width:53.4%;height:51.8%;transform:rotate(0deg);z-index:4;object-fit:cover;" loading="lazy" alt=""><video src="a1b4c4.mp4" style="position:absolute;left:0.0%;top:0.0%;width:53.7%;height:51.7%;transform:rotate(0deg);z-index:4;object-fit:cover;" autoplay loop muted playsinline></video><video src="a1b4c5.mp4" style="position:absolute;left:53.2%;top:0.0%;width:46.9%;height:51.6%;transform:rotate(0deg);z-index:4;object-fit:cover;" autoplay loop muted playsinline></video></div>
-                    <div class="canvas-frame"><video src="a1b4c23.mp4" style="position:absolute;left:12.0%;top:4.3%;width:85.4%;height:90.7%;transform:rotate(0deg);z-index:1;object-fit:cover;" autoplay loop muted playsinline></video></div>
+                    <div class="canvas-frame"><video src="a1b4c23.mp4" style="position:absolute;left:11.4%;top:-0.3%;width:85.4%;height:90.7%;transform:rotate(0deg);z-index:1;object-fit:cover;" autoplay loop muted playsinline></video><video src="a1b4c25.mp4" style="position:absolute;left:11.9%;top:4.1%;width:80.0%;height:80.0%;transform:rotate(0deg);z-index:2;object-fit:cover;" autoplay loop muted playsinline></video></div>
                     <div class="canvas-frame bg-white"><video src="a1b4c6.mp4" style="position:absolute;left:0.0%;top:0.0%;width:38.8%;height:100.7%;transform:rotate(0deg);z-index:1;object-fit:cover;" autoplay loop muted playsinline></video><img src="a1b4c8.png" style="position:absolute;left:40.3%;top:0.0%;width:60.4%;height:104.0%;transform:rotate(0deg);z-index:3;object-fit:cover;" loading="lazy" alt=""></div>
                     <div class="canvas-frame bg-white"><video src="a1b4c13.mp4" style="position:absolute;left:0.0%;top:0.0%;width:48.8%;height:103.0%;transform:rotate(0deg);z-index:2;object-fit:cover;" autoplay loop muted playsinline></video><img src="a1b4c12.png" style="position:absolute;left:59.8%;top:0.0%;width:31.2%;height:106.6%;transform:rotate(0deg);z-index:3;object-fit:cover;" loading="lazy" alt=""></div>
                     <div class="canvas-frame bg-white"><video src="a1b4c15.mp4" style="position:absolute;left:0.0%;top:39.0%;width:29.2%;height:65.4%;transform:rotate(0deg);z-index:2;object-fit:cover;" autoplay loop muted playsinline></video><video src="a1b4c16.mp4" style="position:absolute;left:28.0%;top:0.0%;width:72.4%;height:108.3%;transform:rotate(0deg);z-index:3;object-fit:cover;" autoplay loop muted playsinline></video><img src="a1b4c17.png" style="position:absolute;left:7.2%;top:0.5%;width:16.4%;height:49.6%;transform:rotate(0deg);z-index:3;object-fit:cover;" loading="lazy" alt=""></div>
@@ -267,32 +267,41 @@
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
         });
 
+        const _c = document.createElement('canvas');
+        _c.width = _c.height = 100;
+        const _x = _c.getContext('2d');
+
         function setNavColor(bright) {
             document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
         }
 
-        // IntersectionObserver: fires when a canvas-frame is ≥60% in view
-        const frameObserver = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    setNavColor(entry.target.classList.contains('bg-white'));
-                }
-            });
-        }, { threshold: 0.6 });
+        function sampleMedia(el, done) {
+            const go = () => {
+                try {
+                    _x.drawImage(el, 0, 0, 100, 100);
+                    const d = _x.getImageData(0, 0, 100, 100).data;
+                    let s = 0;
+                    for (let i = 0; i < d.length; i += 4)
+                        s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                    done(s / (d.length / 4) > 128);
+                } catch(e) { done(false); }
+            };
+            if (el.tagName === 'VIDEO') {
+                el.readyState >= 2 ? go() : el.addEventListener('loadeddata', go, { once: true });
+            } else {
+                el.complete && el.naturalWidth ? go() : el.addEventListener('load', go, { once: true });
+            }
+        }
 
-        function observeFrames(wrapper) {
-            wrapper.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => frameObserver.observe(f));
+        function updateNavColor(section) {
+            const frames = [...section.querySelectorAll('.canvas-frame:not(.draft)')];
+            const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), frames.length - 1);
+            const frame = frames[idx];
+            setNavColor(frame ? frame.classList.contains('bg-white') : false);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Observe all frames in the initially active portfolio
-            document.querySelectorAll('.portfolio-wrapper.active').forEach(observeFrames);
-
-            // Set initial color from first frame
-            const first = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
-            if (first) setNavColor(first.classList.contains('bg-white'));
-
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
                 let currentB = 0;
@@ -300,6 +309,7 @@
                 function goToB(index) {
                     currentB = Math.max(0, Math.min(sections.length - 1, index));
                     container.scrollTo({ left: currentB * window.innerWidth, behavior: 'smooth' });
+                    setTimeout(() => updateNavColor(sections[currentB]), 900);
                 }
 
                 container.addEventListener('scrollend', () => {
@@ -311,7 +321,15 @@
                         const goLeft = e.clientX < window.innerWidth / 2;
                         goToB(goLeft ? currentB - 1 : currentB + 1);
                     });
+
+                    let scrollTimer;
+                    section.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = setTimeout(() => updateNavColor(section), 250);
+                    });
                 });
+
+                updateNavColor(sections[0]);
 
                 container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
                     link.addEventListener('click', function(e) {
@@ -327,12 +345,8 @@
         function switchPortfolio(targetId) {
             document.querySelectorAll('.portfolio-wrapper').forEach(wrapper => wrapper.classList.remove('active'));
             document.querySelectorAll('.circle-btn').forEach(btn => btn.classList.remove('active'));
-            const newWrapper = document.getElementById(targetId);
-            newWrapper.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
             document.getElementById('btn-' + targetId).classList.add('active');
-            observeFrames(newWrapper);
-            const first = newWrapper.querySelector('.canvas-frame:not(.draft)');
-            if (first) setNavColor(first.classList.contains('bg-white'));
         }
 
         // ── MOBILE ROTATE PROMPT ────────────────────────────────────────────
