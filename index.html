@@ -295,14 +295,10 @@
         }
 
         function updateNavColor(section) {
-            const frames = section.querySelectorAll('.canvas-frame');
+            const frames = [...section.querySelectorAll('.canvas-frame:not(.draft)')];
             const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), frames.length - 1);
             const frame = frames[idx];
-            if (!frame) return;
-            if (frame.classList.contains('bg-white')) { setNavColor(true); return; }
-            const media = frame.querySelector('img, video');
-            if (media) sampleMedia(media, setNavColor);
-            else setNavColor(false);
+            setNavColor(frame ? frame.classList.contains('bg-white') : false);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
