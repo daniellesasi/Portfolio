@@ -33,8 +33,8 @@
         .canvas-frame { position: relative; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; scroll-snap-align: start; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
-        .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; }
-        .canvas-frame .txt-layer { position: absolute; user-select: none; pointer-events: none; }
+        .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
+        .canvas-frame .txt-layer { position: absolute; user-select: none; pointer-events: none; overflow: hidden; overflow-wrap: break-word; box-sizing: border-box; }
 
         /* ── MOBILE ── */
         #rotate-prompt {
@@ -291,9 +291,14 @@
         }
 
         function updateNavColor(section) {
-            const media = section.querySelectorAll('img, video');
-            const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), media.length - 1);
-            if (media[idx]) sampleMedia(media[idx], setNavColor);
+            const frames = section.querySelectorAll('.canvas-frame');
+            const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), frames.length - 1);
+            const frame = frames[idx];
+            if (!frame) return;
+            if (frame.classList.contains('bg-white')) { setNavColor(true); return; }
+            const media = frame.querySelector('img, video');
+            if (media) sampleMedia(media, setNavColor);
+            else setNavColor(false);
         }
 
         document.addEventListener('DOMContentLoaded', () => {

@@ -216,6 +216,14 @@ let sections={};
 let sectionOrder={}; // { portIdx: ['a1b1','a1b2',...] }
 let activeSec=null, activeSlide=0, selId=null;
 let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,orot}
+let autoSaveTimer=null;
+
+function queuePush(){
+  if(!idxSha||!tok()) return;
+  clearTimeout(autoSaveTimer);
+  st('Unsaved changes…','');
+  autoSaveTimer=setTimeout(()=>saveAll(), 3000);
+}
 
 const $ = id => document.getElementById(id);
 const tok = () => { token=$('tok').value.trim()||localStorage.getItem('gh_t')||''; $('tok').value=token; if(token)localStorage.setItem('gh_t',token); return token; };
@@ -328,7 +336,7 @@ function renderGrid(){
         if(from===to)return;
         const arr=sectionOrder[pi];
         arr.splice(to,0,arr.splice(from,1)[0]);
-        renderGrid();
+        renderGrid(); queuePush();
       });
       g.appendChild(el);
     });
@@ -383,7 +391,7 @@ function renderFilmstrip(){
       if(from===to)return;
       const arr=sections[activeSec];
       arr.splice(to,0,arr.splice(from,1)[0]);
-      renderFilmstrip(); showSlide(to);
+      renderFilmstrip(); showSlide(to); queuePush();
     });
     fs.appendChild(th);
   });
@@ -415,14 +423,14 @@ function showSlide(i){
 function toggleDraft(){
   const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
   slide.draft=!slide.draft;
-  renderFilmstrip(); showSlide(activeSlide);
+  renderFilmstrip(); showSlide(activeSlide); queuePush();
 }
 
 function toggleDraftAt(e,i){
   e.stopPropagation();
   const slide=sections[activeSec]?.[i]; if(!slide)return;
   slide.draft=!slide.draft;
-  renderFilmstrip(); showSlide(activeSlide);
+  renderFilmstrip(); showSlide(activeSlide); queuePush();
 }
 
 function buildLayerEl(layer){
@@ -573,7 +581,7 @@ document.addEventListener('mousemove',e=>{
   updateSelBox(layer);
 });
 
-document.addEventListener('mouseup',()=>drag=null);
+document.addEventListener('mouseup',()=>{ if(drag) queuePush(); drag=null; });
 
 // Drop files onto canvas
 canvas.addEventListener('dragover',e=>e.preventDefault());
@@ -582,7 +590,7 @@ canvas.addEventListener('drop',e=>{e.preventDefault();addFilesToSlide(e.dataTran
 function resetSel(){
   const layer=getLayer(selId); if(!layer)return;
   layer.x=0;layer.y=0;layer.w=100;layer.h=100;layer.rot=0;
-  showSlide(activeSlide); updateSelBox(layer);
+  showSlide(activeSlide); updateSelBox(layer); queuePush();
 }
 
 // ── FILE / LAYER MANAGEMENT ───────────────────────────────────────────────────
@@ -615,7 +623,7 @@ function delLayer(e,lid){
   const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
   slide.layers=slide.layers.filter(l=>l.id!==lid);
   if(selId===lid){hideSel();}
-  showSlide(activeSlide); renderLayers();
+  showSlide(activeSlide); renderLayers(); queuePush();
 }
 
 function addSlide(){
@@ -636,20 +644,19 @@ function addTextLayer(){
   const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
   const layer={id:`l${Date.now()}`,type:'text',text:'Text',x:10,y:35,w:80,h:20,rot:0,z:(slide.layers.length||0)+1,fontSize:4,fontFamily:'Anton',color:'#ffffff',align:'center',bold:false,italic:false};
   slide.layers.push(layer);
-  showSlide(activeSlide); renderLayers(); selectLayerById(layer.id);
+  showSlide(activeSlide); renderLayers(); selectLayerById(layer.id); queuePush();
 }
 
 function updateTextProp(prop, val){
   const layer=getLayer(selId); if(!layer||layer.type!=='text')return;
   layer[prop]=val;
-  // live-update canvas text element
   const wrap=$('canvas').querySelector(`[data-lid="${selId}"]`);
   if(wrap){
     const txt=wrap.firstChild;
     if(prop==='text') txt.textContent=val;
     else txt.style.cssText=textLayerCSS(layer)+'width:100%;height:100%;box-sizing:border-box;padding:4px 8px;';
   }
-  renderLayers();
+  renderLayers(); queuePush();
 }
 
 function toggleTextProp(prop, btnId){
@@ -782,6 +789,7 @@ function toggleCanvasBg(){
   const isWhite=c.classList.toggle('bg-white');
   btn.textContent=isWhite?'⬜ White':'⬛ Black';
   const slide=sections[activeSec]?.[activeSlide]; if(slide) slide.bg=isWhite?'#fff':'#000';
+  queuePush();
 }
 
 window.addEventListener('resize',()=>{ positionCanvas(); if(selId){const l=getLayer(selId);if(l)updateSelBox(l);} });
