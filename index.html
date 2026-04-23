@@ -267,41 +267,32 @@
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
         });
 
-        const _c = document.createElement('canvas');
-        _c.width = _c.height = 100;
-        const _x = _c.getContext('2d');
-
         function setNavColor(bright) {
             document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
         }
 
-        function sampleMedia(el, done) {
-            const go = () => {
-                try {
-                    _x.drawImage(el, 0, 0, 100, 100);
-                    const d = _x.getImageData(0, 0, 100, 100).data;
-                    let s = 0;
-                    for (let i = 0; i < d.length; i += 4)
-                        s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-                    done(s / (d.length / 4) > 128);
-                } catch(e) { done(false); }
-            };
-            if (el.tagName === 'VIDEO') {
-                el.readyState >= 2 ? go() : el.addEventListener('loadeddata', go, { once: true });
-            } else {
-                el.complete && el.naturalWidth ? go() : el.addEventListener('load', go, { once: true });
-            }
-        }
+        // IntersectionObserver: fires when a canvas-frame is ≥60% in view
+        const frameObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setNavColor(entry.target.classList.contains('bg-white'));
+                }
+            });
+        }, { threshold: 0.6 });
 
-        function updateNavColor(section) {
-            const frames = [...section.querySelectorAll('.canvas-frame:not(.draft)')];
-            const idx = Math.min(Math.round(section.scrollTop / window.innerHeight), frames.length - 1);
-            const frame = frames[idx];
-            setNavColor(frame ? frame.classList.contains('bg-white') : false);
+        function observeFrames(wrapper) {
+            wrapper.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => frameObserver.observe(f));
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Observe all frames in the initially active portfolio
+            document.querySelectorAll('.portfolio-wrapper.active').forEach(observeFrames);
+
+            // Set initial color from first frame
+            const first = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
+            if (first) setNavColor(first.classList.contains('bg-white'));
+
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
                 let currentB = 0;
@@ -309,7 +300,6 @@
                 function goToB(index) {
                     currentB = Math.max(0, Math.min(sections.length - 1, index));
                     container.scrollTo({ left: currentB * window.innerWidth, behavior: 'smooth' });
-                    setTimeout(() => updateNavColor(sections[currentB]), 900);
                 }
 
                 container.addEventListener('scrollend', () => {
@@ -321,15 +311,7 @@
                         const goLeft = e.clientX < window.innerWidth / 2;
                         goToB(goLeft ? currentB - 1 : currentB + 1);
                     });
-
-                    let scrollTimer;
-                    section.addEventListener('scroll', () => {
-                        clearTimeout(scrollTimer);
-                        scrollTimer = setTimeout(() => updateNavColor(section), 250);
-                    });
                 });
-
-                updateNavColor(sections[0]);
 
                 container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
                     link.addEventListener('click', function(e) {
@@ -345,8 +327,12 @@
         function switchPortfolio(targetId) {
             document.querySelectorAll('.portfolio-wrapper').forEach(wrapper => wrapper.classList.remove('active'));
             document.querySelectorAll('.circle-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(targetId).classList.add('active');
+            const newWrapper = document.getElementById(targetId);
+            newWrapper.classList.add('active');
             document.getElementById('btn-' + targetId).classList.add('active');
+            observeFrames(newWrapper);
+            const first = newWrapper.querySelector('.canvas-frame:not(.draft)');
+            if (first) setNavColor(first.classList.contains('bg-white'));
         }
 
         // ── MOBILE ROTATE PROMPT ────────────────────────────────────────────
