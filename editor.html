@@ -31,8 +31,11 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 .tab { padding:5px 16px; background:#555; border:1px solid #666; border-radius:20px; cursor:pointer; font-size:.74rem; color:#aaa; }
 .tab.active { background:#fff; color:#000; border-color:#fff; }
 .sg { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
-.sc { background:#4a4a4a; border:1px solid #555; border-radius:9px; overflow:hidden; cursor:pointer; transition:border-color .2s,transform .15s; }
+.sc { background:#4a4a4a; border:1px solid #555; border-radius:9px; overflow:hidden; cursor:grab; transition:border-color .2s,transform .15s,opacity .15s; position:relative; }
 .sc:hover { border-color:#888; transform:scale(1.015); }
+.sc.dragging { opacity:.3; cursor:grabbing; transform:none; }
+.sc.drag-over { border-color:#00cc66; border-style:dashed; transform:none; }
+.sc .order-badge { position:absolute; top:7px; left:8px; background:rgba(0,0,0,.65); padding:2px 7px; border-radius:9px; font-size:.6rem; color:#fff; z-index:2; pointer-events:none; }
 .sc .prev { height:150px; background:#3a3a3a; position:relative; overflow:hidden; }
 .sc .prev img,.sc .prev video { width:100%; height:100%; object-fit:cover; pointer-events:none; }
 .sc .prev .badge { position:absolute; bottom:7px; right:8px; background:rgba(0,0,0,.6); padding:2px 8px; border-radius:9px; font-size:.6rem; color:#ccc; }
@@ -95,6 +98,11 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 .th.act { border-color:#fff; }
 .th.drag-over { border-color:#00cc66; border-style:dashed; }
 .th.dragging { opacity:.3; cursor:grabbing; }
+.th.draft { opacity:.4; }
+.th .th-draft { position:absolute; bottom:3px; right:3px; background:rgba(0,0,0,.75); border:none; color:#fff; width:18px; height:18px; border-radius:3px; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2; }
+.th:hover .th-draft { display:flex; }
+.th.draft .th-draft { display:flex; background:rgba(200,120,0,.85); }
+.th .th-draft:hover { background:rgba(200,120,0,.85); }
 .th canvas,.th img,.th video { width:100%; height:100%; object-fit:cover; pointer-events:none; display:block; }
 .th .th-del { position:absolute; top:3px; right:3px; background:rgba(0,0,0,.75); border:none; color:#fff; width:18px; height:18px; border-radius:3px; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2; }
 .th:hover .th-del { display:flex; }
@@ -130,6 +138,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
       <span id="slide-lbl"></span>
       <span class="sep"></span>
       <button class="btn" id="bgToggle" onclick="toggleCanvasBg()" title="Toggle canvas background">⬛ Black</button>
+      <button class="btn" id="draftToggle" onclick="toggleDraft()" title="Toggle draft">👁 Live</button>
       <button class="btn" onclick="resetSel()">Reset layer</button>
       <button class="btn" onclick="addSlide()">+ Slide</button>
     </div>
@@ -165,6 +174,7 @@ const PORTS=['a1','a2'], NB=7;
 let token='', idxSha='', idxHTML='';
 // sections[id] = [ { layers:[ {id,type,src,preview,b64,filename,x,y,w,h,rot,z,fit} ] } ]
 let sections={};
+let sectionOrder={}; // { portIdx: ['a1b1','a1b2',...] }
 let activeSec=null, activeSlide=0, selId=null;
 let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,orot}
 
@@ -196,6 +206,7 @@ function parseHTML(){
         sec.querySelectorAll('.canvas-frame').forEach(frame=>{
           const layers=[];
           const bg=frame.classList.contains('bg-white')?'#fff':'#000';
+          const isDraft=frame.classList.contains('draft');
           frame.querySelectorAll('img,video').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
             const lx=parseFloat((s.match(/left:([\d.]+)%/)||[,0])[1]);
@@ -206,7 +217,7 @@ function parseHTML(){
             const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
             layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover'});
           });
-          slides.push({layers,bg});
+          slides.push({layers,bg,...(isDraft&&{draft:true})});
         });
         // Legacy: direct img/video
         if(!slides.length){
@@ -219,23 +230,53 @@ function parseHTML(){
       sections[id]=slides;
     }
   });
+  // init section order
+  PORTS.forEach((port,pi)=>{ sectionOrder[pi]=Array.from({length:NB},(_,i)=>`${port}b${i+1}`); });
 }
 
 // ── GRID ─────────────────────────────────────────────────────────────────────
+let gridDragFrom=null, gridDragPortIdx=null;
+
 function renderGrid(){
   [0,1].forEach(pi=>{
     const g=$(`sg${pi}`); g.innerHTML='';
-    for(let b=1;b<=NB;b++){
-      const id=`${PORTS[pi]}b${b}`, slides=sections[id]||[];
+    const order=sectionOrder[pi]||[];
+    order.forEach((id,pos)=>{
+      const slides=sections[id]||[];
       const first=slides[0]?.layers?.find(l=>l.src||l.preview);
-      const el=document.createElement('div'); el.className='sc'; el.onclick=()=>openEditor(id);
+      const el=document.createElement('div'); el.className='sc'; el.dataset.id=id;
       const src=first?(first.preview||BASE+first.src):'';
       const tag=first?.type||'img';
       const prev=src?`<${tag} src="${src}" ${tag==='video'?'muted autoplay loop playsinline':''}></${tag}>` :'';
       const count=slides.reduce((a,s)=>a+(s.layers?.length||0),0);
-      el.innerHTML=`<div class="prev">${prev}<span class="badge">${slides.length} slide${slides.length!==1?'s':''} · ${count} layer${count!==1?'s':''}</span></div><div class="foot"><span class="lbl">Gallery ${b}</span><span class="hint">Click to edit →</span></div>`;
+      const draftCount=slides.filter(s=>s.draft).length;
+      const draftNote=draftCount?` · ${draftCount} draft`:'';
+      const origB=id.match(/b(\d+)/)[1];
+      el.innerHTML=`<span class="order-badge">${pos+1}</span><div class="prev">${prev}<span class="badge">${slides.length} slide${slides.length!==1?'s':''}${draftNote} · ${count} layer${count!==1?'s':''}</span></div><div class="foot"><span class="lbl">Gallery ${origB}</span><span class="hint">Drag to reorder · Click to edit →</span></div>`;
+      // click to edit (only if not dragging)
+      el.onclick=e=>{ if(!e.defaultPrevented) openEditor(id); };
+      // drag-to-reorder
+      el.draggable=true;
+      el.addEventListener('dragstart',e=>{
+        gridDragFrom=pos; gridDragPortIdx=pi;
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed='move';
+        e.dataTransfer.setData('text/plain',pos);
+      });
+      el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+      el.addEventListener('dragover',e=>{ if(gridDragPortIdx!==pi)return; e.preventDefault(); el.classList.add('drag-over'); });
+      el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));
+      el.addEventListener('drop',e=>{
+        e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over');
+        if(gridDragPortIdx!==pi) return;
+        const from=gridDragFrom, to=pos;
+        if(from===to)return;
+        const arr=sectionOrder[pi];
+        arr.splice(to,0,arr.splice(from,1)[0]);
+        renderGrid();
+      });
       g.appendChild(el);
-    }
+    });
   });
 }
 function switchTab(i){
@@ -269,12 +310,13 @@ function renderFilmstrip(){
   const fs=$('fs'); fs.innerHTML='';
   const slides=sections[activeSec]||[];
   slides.forEach((slide,i)=>{
-    const th=document.createElement('div'); th.className='th'+(i===activeSlide?' act':''); th.dataset.i=i;
+    const th=document.createElement('div'); th.className='th'+(i===activeSlide?' act':'')+(slide.draft?' draft':''); th.dataset.i=i;
     th.draggable=true;
     const first=slide.layers?.find(l=>l.src||l.preview);
     if(first){const src=first.preview||BASE+first.src; const el=document.createElement(first.type); el.src=src; if(first.type==='video'){el.muted=true;el.autoplay=true;el.loop=true;} th.appendChild(el);}
     th.innerHTML+=`<button class="th-del" onclick="delSlide(event,${i})">✕</button>`;
-    th.onclick=e=>{if(!e.target.classList.contains('th-del'))showSlide(i);};
+    th.innerHTML+=`<button class="th-draft" title="${slide.draft?'Draft — not published':'Live — click to hide'}" onclick="toggleDraftAt(event,${i})">${slide.draft?'✦':'👁'}</button>`;
+    th.onclick=e=>{if(!e.target.classList.contains('th-del')&&!e.target.classList.contains('th-draft'))showSlide(i);};
     // drag-to-reorder
     th.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',i);th.classList.add('dragging');});
     th.addEventListener('dragend',()=>th.classList.remove('dragging'));
@@ -304,11 +346,28 @@ function showSlide(i){
   const isWhite=(slide?.bg||'#000')==='#fff';
   c.classList.toggle('bg-white',isWhite);
   btn.textContent=isWhite?'⬜ White':'⬛ Black';
+  const isDraft=!!slide?.draft;
+  const dBtn=$('draftToggle');
+  dBtn.textContent=isDraft?'✦ Draft':'👁 Live';
+  dBtn.style.background=isDraft?'#7a4a00':'';
   // Remove all media layers (keep sel-box)
   Array.from(c.querySelectorAll('[data-lid]')).forEach(el=>el.remove());
   if(slide?.layers) slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>c.appendChild(buildLayerEl(layer)));
   // update filmstrip highlight
   document.querySelectorAll('.th').forEach((t,ti)=>t.classList.toggle('act',ti===i));
+}
+
+function toggleDraft(){
+  const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
+  slide.draft=!slide.draft;
+  renderFilmstrip(); showSlide(activeSlide);
+}
+
+function toggleDraftAt(e,i){
+  e.stopPropagation();
+  const slide=sections[activeSec]?.[i]; if(!slide)return;
+  slide.draft=!slide.draft;
+  renderFilmstrip(); showSlide(activeSlide);
 }
 
 function buildLayerEl(layer){
@@ -499,12 +558,14 @@ async function saveAll(){
 
 function buildHTML(){
   let html=idxHTML;
+  // 1. Replace each section's slide content
   Object.entries(sections).forEach(([id,slides])=>{
     let galContent='';
     slides.forEach(slide=>{
       if(!slide.layers?.length)return;
       const bgClass=slide.bg==='#fff'?' bg-white':'';
-      let frame=`<div class="canvas-frame${bgClass}">`;
+      const draftClass=slide.draft?' draft':'';
+      let frame=`<div class="canvas-frame${bgClass}${draftClass}">`;
       slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
         const src=layer.filename||layer.src;
         const style=`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};object-fit:${layer.fit||'cover'};`;
@@ -519,6 +580,44 @@ function buildHTML(){
       `$1\n                    ${galContent}$2`
     );
   });
+  // 2. Reorder sections + nav for each portfolio
+  [0,1].forEach(pi=>{ html=reorderPortHTML(html,pi); });
+  return html;
+}
+
+function reorderPortHTML(html, pi){
+  const portId = pi===0 ? 'port1' : 'port2';
+  const order = sectionOrder[pi];
+
+  // -- reorder <section> elements within <main> --
+  const portPos = html.indexOf(`id="${portId}"`);
+  if(portPos===-1) return html;
+  const mainOpen = html.indexOf('<main', portPos);
+  const mainClose = html.indexOf('</main>', mainOpen);
+  if(mainOpen===-1||mainClose===-1) return html;
+  const mainTagEnd = html.indexOf('>', mainOpen)+1;
+  const mainInner = html.slice(mainTagEnd, mainClose);
+
+  // Split before each <section
+  const parts = mainInner.split(/(?=<section[\s>])/);
+  const leading = parts[0];
+  const secMap = {};
+  for(let i=1;i<parts.length;i++){
+    const m=parts[i].match(/\bid="([^"]+)"/);
+    if(m) secMap[m[1]]=parts[i];
+  }
+  const reorderedMain = leading + order.map(id=>secMap[id]||'').join('');
+  html = html.slice(0, mainTagEnd) + reorderedMain + html.slice(mainClose);
+
+  // -- reorder nav <a> links to match new section order --
+  const navOpen = html.indexOf('<nav', portPos);
+  const navClose = html.indexOf('</nav>', navOpen);
+  if(navOpen===-1||navClose===-1) return html;
+  const navTagEnd = html.indexOf('>', navOpen)+1;
+  // rebuild nav links: label is position, href is section id
+  const newNav = order.map((id,i)=>`<a href="#${id}">${i+1}</a>`).join('');
+  html = html.slice(0, navTagEnd) + newNav + html.slice(navClose);
+
   return html;
 }
 
