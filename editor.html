@@ -612,7 +612,8 @@ function addFilesToSlide(files){
       slide.layers.push(layer);
       showSlide(activeSlide); renderLayers();
       selectLayerById(layer.id);
-      st(`${fname} added`,'ok');
+      st(`${fname} added — uploading…`,'');
+      queuePush();
     };
     reader.readAsDataURL(file);
   });
