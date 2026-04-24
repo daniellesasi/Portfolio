@@ -302,6 +302,32 @@
             setNavColor(frame ? frame.classList.contains('bg-white') : false);
         }
 
+        // ── LAZY VIDEO LOADING ───────────────────────────────────────────
+        // Move all video src → data-src so browsers don't fetch everything upfront.
+        // Videos are loaded only when their canvas-frame enters (or nearly enters) the viewport.
+        document.querySelectorAll('.canvas-frame video').forEach(v => {
+            const s = v.getAttribute('src');
+            if (s) { v.dataset.src = s; v.removeAttribute('src'); }
+        });
+
+        const videoLoader = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                const frame = entry.target;
+                if (entry.isIntersecting) {
+                    frame.querySelectorAll('video[data-src]').forEach(v => {
+                        v.setAttribute('src', v.dataset.src);
+                        v.play().catch(() => {});
+                    });
+                    frame.querySelectorAll('video:not([data-src])').forEach(v => v.play().catch(() => {}));
+                } else {
+                    frame.querySelectorAll('video').forEach(v => v.pause());
+                }
+            });
+        // rootMargin: pre-load ~1 slide ahead in all directions
+        }, { rootMargin: '200px 600px 200px 600px', threshold: 0 });
+
+        document.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => videoLoader.observe(f));
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
                 const sections = Array.from(container.querySelectorAll('.project-section'));
