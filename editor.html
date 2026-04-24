@@ -597,7 +597,8 @@ function resetSel(){
 function pickFiles(){ const i=document.createElement('input'); i.type='file'; i.accept='image/*,video/*'; i.multiple=true; i.onchange=()=>addFilesToSlide(i.files); i.click(); }
 
 function addFilesToSlide(files){
-  const slide=sections[activeSec]?.[activeSlide]; if(!slide)return;
+  const slide=sections[activeSec]?.[activeSlide];
+  if(!slide){st('Open a section first (click a card in the grid)','er');return;}
   const slides=sections[activeSec];
   let cIdx=1;
   slides.forEach(sl=>sl.layers.forEach(l=>{const m=(l.filename||l.src||'').match(/c(\d+)\./);if(m)cIdx=Math.max(cIdx,+m[1]+1);}));
@@ -677,10 +678,12 @@ function cycleAlign(){
 
 // ── SAVE ─────────────────────────────────────────────────────────────────────
 async function saveAll(){
-  if(!tok()){st('No token','er');return;}
+  if(!tok()){alert('No GitHub token — enter your token and click Load first.');return;}
+  if(!idxSha){alert('Editor not loaded — click Load first.');return;}
   $('saveBtn').disabled=true;
-  // Collect all layers with b64
+  // Collect all layers with b64 (newly added files)
   const uploads=[]; Object.values(sections).forEach(slides=>slides.forEach(sl=>sl.layers.forEach(l=>{if(l.b64)uploads.push(l);})));
+  console.log(`saveAll: ${uploads.length} file(s) to upload`, uploads.map(l=>l.filename));
   let done=0;
   for(const l of uploads){
     st(`Uploading ${l.filename} (${++done}/${uploads.length})…`);
@@ -688,13 +691,27 @@ async function saveAll(){
       const ex=await gh(l.filename); const sha=ex.ok?(await ex.json()).sha:undefined;
       const body={message:`Upload ${l.filename}`,content:l.b64,branch:BRANCH}; if(sha)body.sha=sha;
       const res=await gh(l.filename,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(!res.ok)throw new Error(await res.text());
+      if(!res.ok){
+        const errText=await res.text();
+        console.error('Upload failed:', res.status, errText);
+        alert(`Upload failed for ${l.filename}:\n${res.status} — ${errText}`);
+        $('saveBtn').disabled=false; return;
+      }
+      console.log(`Uploaded: ${l.filename}`);
       l.src=l.filename; delete l.b64;
-    }catch(e){st('Upload failed: '+e.message,'er');$('saveBtn').disabled=false;return;}
+    }catch(e){
+      console.error('Upload error:', e);
+      alert(`Upload error for ${l.filename}:\n${e.message}`);
+      $('saveBtn').disabled=false; return;
+    }
   }
   st('Updating index.html…');
-  try{ await pushHTML(); st(`✓ ${done} file(s) saved`,'ok');}
-  catch(e){st('index.html failed: '+e.message,'er');}
+  try{ await pushHTML(); st(`✓ ${uploads.length} file(s) + index.html saved`,'ok'); console.log('Push complete');}
+  catch(e){
+    console.error('pushHTML failed:', e);
+    alert(`index.html push failed:\n${e.message}`);
+    st('index.html failed','er');
+  }
   $('saveBtn').disabled=false; renderGrid();
 }
 
