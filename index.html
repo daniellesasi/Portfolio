@@ -51,19 +51,11 @@
         .project-section:hover .gallery-arrow:not(.hidden) { opacity: 1; }
 
         /* ── SCROLL HINT ── */
-        #scroll-hint { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; pointer-events: none; }
+        #scroll-hint { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 8px rgba(0,0,0,0.7)) drop-shadow(0 2px 16px rgba(0,0,0,0.5)); }
         #scroll-hint.visible { animation: sh-blink 3.6s ease forwards; }
-        @keyframes sh-blink { 0%{opacity:0;transform:translateX(-50%) translateY(10px)} 12%{opacity:1;transform:translateX(-50%) translateY(0)} 45%{opacity:1} 65%{opacity:0.15} 80%{opacity:1} 95%{opacity:0.15} 100%{opacity:0} }
-        .sh-label { font-family:'Anton',sans-serif; font-size: 0.75rem; letter-spacing: 3px; }
-        .sh-chevrons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .sh-chev { width: 22px; height: 22px; border-right: 3px solid; border-bottom: 3px solid; transform: rotate(45deg); }
-        .sh-chev:nth-child(1) { opacity: 0.4; }
-        .sh-chev:nth-child(2) { opacity: 0.7; }
-        .sh-chev:nth-child(3) { opacity: 1; }
-        #scroll-hint.on-white .sh-label,
-        #scroll-hint.on-white .sh-chev { color: #000; border-color: #000; }
-        #scroll-hint:not(.on-white) .sh-label,
-        #scroll-hint:not(.on-white) .sh-chev { color: #fff; border-color: #fff; }
+        @keyframes sh-blink { 0%{opacity:0;transform:translateX(-50%) translateY(12px)} 12%{opacity:1;transform:translateX(-50%) translateY(0)} 45%{opacity:1} 65%{opacity:0.1} 80%{opacity:1} 95%{opacity:0.1} 100%{opacity:0} }
+        .sh-label { font-family:'Anton',sans-serif; font-size: 0.7rem; letter-spacing: 4px; color: #fff; }
+        .sh-chev { width: 28px; height: 28px; border-right: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(45deg); }
 
         /* ── MOBILE ── */
         #rotate-prompt {
@@ -287,14 +279,7 @@
         </main>
     </div>
 
-    <div id="scroll-hint">
-        <div class="sh-label">SCROLL</div>
-        <div class="sh-chevrons">
-            <div class="sh-chev"></div>
-            <div class="sh-chev"></div>
-            <div class="sh-chev"></div>
-        </div>
-    </div>
+    <div id="scroll-hint"><div class="sh-label">SCROLL</div><div class="sh-chev"></div></div>
 
     <div id="rotate-prompt">
         <div id="rotate-phone">
@@ -349,14 +334,12 @@
 
         const scrollHint = document.getElementById('scroll-hint');
         let scrollHintTimer = null;
-        function showScrollHint(bright) {
-            scrollHint.classList.toggle('on-white', bright);
-            // restart animation
+        function showScrollHint() {
             scrollHint.classList.remove('visible');
-            scrollHint.offsetWidth; // reflow to reset animation
+            scrollHint.offsetWidth;
             scrollHint.classList.add('visible');
             clearTimeout(scrollHintTimer);
-            scrollHintTimer = setTimeout(() => scrollHint.classList.remove('visible'), 3300);
+            scrollHintTimer = setTimeout(() => scrollHint.classList.remove('visible'), 3700);
         }
         function hideScrollHint() {
             clearTimeout(scrollHintTimer);
@@ -414,8 +397,7 @@
                         setNavColor(bright);
                         updateArrows();
                         // show scroll hint once the last slide is reached
-                        if (cur === frames.length - 1) showScrollHint(bright);
-                        scrollHint.classList.toggle('on-white', bright);
+                        if (cur === frames.length - 1) showScrollHint();
                     }
 
                     updateArrows();
