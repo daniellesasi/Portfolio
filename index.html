@@ -24,13 +24,14 @@
         .portfolio-wrapper { display: none; }
         .portfolio-wrapper.active { display: block; }
         
-        .vertical-scroll-container { display: flex; width: 100vw; height: 100vh; overflow-x: scroll; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+        /* vertical scroll between galleries */
+        .vertical-scroll-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow-y: scroll; overflow-x: hidden; scroll-snap-type: y mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
         .vertical-scroll-container::-webkit-scrollbar { display: none; }
-        .project-section { min-width: 100vw; height: 100vh; flex-shrink: 0; scroll-snap-align: start; overflow-y: scroll; scroll-snap-type: y proximity; cursor: pointer; }
+        .project-section { width: 100vw; height: 100vh; flex-shrink: 0; scroll-snap-align: start; overflow: hidden; position: relative; cursor: pointer; }
 
-        .horizontal-gallery { display: flex; flex-direction: column; width: 100%; }
-        .horizontal-gallery > img, .horizontal-gallery > video { min-height: 100vh; width: 100vw; flex-shrink: 0; object-fit: cover; user-select: none; pointer-events: none; scroll-snap-align: start; }
-        .canvas-frame { position: relative; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; scroll-snap-align: start; background: #000; }
+        /* horizontal slides inside each gallery, navigated by click */
+        .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
+        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
@@ -271,83 +272,93 @@
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
         });
 
-        // ── NAV COLOR: driven purely by bg-white class on each canvas-frame ──
+        // ── NAV COLOR ────────────────────────────────────────────────────────
         function setNavColor(bright) {
             document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
         }
 
-        const frameObserver = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting)
-                    setNavColor(entry.target.classList.contains('bg-white'));
-            });
-        }, { threshold: 0.6 });
-
-        function observeFrames(wrapper) {
-            wrapper.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => frameObserver.observe(f));
-        }
-
         // ── LAZY VIDEO LOADING ───────────────────────────────────────────
         // Strip src → data-src so browsers fetch nothing upfront.
-        // Restore src only the first time a frame enters (or nearly enters) the viewport.
         document.querySelectorAll('.canvas-frame video').forEach(v => {
             const s = v.getAttribute('src');
             if (s) { v.dataset.src = s; v.removeAttribute('src'); }
         });
 
-        const videoLoader = new IntersectionObserver(entries => {
+        // Load all videos in a frame (called when frame becomes active)
+        function loadFrameVideos(frame) {
+            if (!frame) return;
+            frame.querySelectorAll('video[data-src]').forEach(v => {
+                v.setAttribute('src', v.dataset.src);
+                v.removeAttribute('data-src');
+                v.play().catch(() => {});
+            });
+            frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+        }
+
+        // Section-level lazy loading: when a section scrolls into view, load its first frame's videos
+        const sectionLoader = new IntersectionObserver(entries => {
             entries.forEach(entry => {
-                const frame = entry.target;
                 if (entry.isIntersecting) {
-                    frame.querySelectorAll('video[data-src]').forEach(v => {
-                        v.setAttribute('src', v.dataset.src);
-                        v.removeAttribute('data-src');  // load once only
-                        v.play().catch(() => {});
-                    });
-                    frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+                    const first = entry.target.querySelector('.canvas-frame:not(.draft)');
+                    loadFrameVideos(first);
                 } else {
-                    frame.querySelectorAll('video').forEach(v => v.pause());
+                    entry.target.querySelectorAll('video').forEach(v => v.pause());
                 }
             });
-        }, { rootMargin: '200px 600px 200px 600px', threshold: 0 });
+        }, { rootMargin: '100% 0px 100% 0px', threshold: 0 });
 
-        document.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => videoLoader.observe(f));
+        document.querySelectorAll('.project-section').forEach(s => sectionLoader.observe(s));
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Start observing nav-color frames for active portfolio
-            document.querySelectorAll('.portfolio-wrapper.active').forEach(observeFrames);
-
-            // Set initial nav color from first visible frame
+            // Set initial nav color from first frame of first active section
             const firstFrame = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
             if (firstFrame) setNavColor(firstFrame.classList.contains('bg-white'));
 
             document.querySelectorAll('.vertical-scroll-container').forEach(container => {
-                const sections = Array.from(container.querySelectorAll('.project-section'));
-                let currentB = 0;
+                const sectionEls = Array.from(container.querySelectorAll('.project-section'));
 
-                function goToB(index) {
-                    currentB = Math.max(0, Math.min(sections.length - 1, index));
-                    container.scrollTo({ left: currentB * window.innerWidth, behavior: 'smooth' });
-                }
+                // ── Per-section click-to-slide navigation ─────────────────
+                sectionEls.forEach(section => {
+                    const gallery = section.querySelector('.horizontal-gallery');
+                    if (!gallery) return;
+                    const frames = Array.from(gallery.querySelectorAll('.canvas-frame:not(.draft)'));
+                    let cur = 0;
 
-                container.addEventListener('scrollend', () => {
-                    currentB = Math.round(container.scrollLeft / window.innerWidth);
-                });
+                    function goToFrame(i) {
+                        // pause old frame
+                        frames[cur]?.querySelectorAll('video').forEach(v => v.pause());
+                        cur = Math.max(0, Math.min(frames.length - 1, i));
+                        gallery.style.transform = `translateX(${-cur * 100}vw)`;
+                        // load new frame + preload neighbors
+                        loadFrameVideos(frames[cur]);
+                        loadFrameVideos(frames[cur + 1]);
+                        loadFrameVideos(frames[cur - 1]);
+                        setNavColor(frames[cur]?.classList.contains('bg-white') ?? false);
+                    }
 
-                sections.forEach(section => {
-                    section.addEventListener('click', function(e) {
-                        const goLeft = e.clientX < window.innerWidth / 2;
-                        goToB(goLeft ? currentB - 1 : currentB + 1);
+                    section.addEventListener('click', e => {
+                        if (e.target.closest('a')) return;
+                        goToFrame(e.clientX < window.innerWidth / 2 ? cur - 1 : cur + 1);
                     });
                 });
 
+                // ── Vertical scroll: update nav color when section changes ──
+                container.addEventListener('scrollend', () => {
+                    const idx = Math.round(container.scrollTop / window.innerHeight);
+                    const sec = sectionEls[idx];
+                    if (!sec) return;
+                    const frame = sec.querySelector('.canvas-frame:not(.draft)');
+                    if (frame) setNavColor(frame.classList.contains('bg-white'));
+                });
+
+                // ── Side-menu links → scroll to section ──────────────────
                 container.closest('.portfolio-wrapper').querySelectorAll('.side-menu a').forEach(link => {
-                    link.addEventListener('click', function(e) {
+                    link.addEventListener('click', e => {
                         e.preventDefault();
-                        const targetId = this.getAttribute('href').slice(1);
-                        const idx = sections.findIndex(s => s.id === targetId);
-                        if (idx !== -1) goToB(idx);
+                        const id = link.getAttribute('href').slice(1);
+                        const idx = sectionEls.findIndex(s => s.id === id);
+                        if (idx !== -1) container.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
                     });
                 });
             });
@@ -356,11 +367,9 @@
         function switchPortfolio(targetId) {
             document.querySelectorAll('.portfolio-wrapper').forEach(w => w.classList.remove('active'));
             document.querySelectorAll('.circle-btn').forEach(b => b.classList.remove('active'));
-            const newWrapper = document.getElementById(targetId);
-            newWrapper.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
             document.getElementById('btn-' + targetId).classList.add('active');
-            observeFrames(newWrapper);
-            const first = newWrapper.querySelector('.canvas-frame:not(.draft)');
+            const first = document.querySelector(`#${targetId} .canvas-frame:not(.draft)`);
             if (first) setNavColor(first.classList.contains('bg-white'));
         }
 
