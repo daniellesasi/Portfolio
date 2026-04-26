@@ -38,12 +38,17 @@
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
         .canvas-frame .txt-layer { position: absolute; user-select: none; pointer-events: none; overflow: hidden; overflow-wrap: break-word; box-sizing: border-box; }
 
-        /* ── GALLERY DOTS ── */
-        .gallery-dots { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 50; pointer-events: none; align-items: center; }
-        .gdot { height: 6px; width: 6px; border-radius: 3px; background: rgba(255,255,255,0.4); transition: width 0.3s ease, background 0.3s ease; flex-shrink: 0; }
-        .gdot.active { width: 22px; background: #fff; }
-        .gallery-dots.on-white .gdot { background: rgba(0,0,0,0.22); }
-        .gallery-dots.on-white .gdot.active { background: #000; }
+        /* ── GALLERY ARROWS ── */
+        .gallery-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.4s ease; display: flex; align-items: center; justify-content: center; }
+        .gallery-arrow.left  { left: 24px; }
+        .gallery-arrow.right { right: 24px; }
+        .gallery-arrow .arr { width: 12px; height: 12px; border-top: 2px solid; border-right: 2px solid; }
+        .gallery-arrow.left  .arr { transform: rotate(-135deg); }
+        .gallery-arrow.right .arr { transform: rotate(45deg); }
+        .gallery-arrow.hidden { opacity: 0 !important; }
+        .gallery-arrow.on-white .arr { border-color: rgba(0,0,0,0.5); }
+        .gallery-arrow:not(.on-white) .arr { border-color: rgba(255,255,255,0.55); }
+        .project-section:hover .gallery-arrow:not(.hidden) { opacity: 1; }
 
         /* ── SCROLL HINT ── */
         #scroll-hint { position: fixed; bottom: 36px; right: 44px; z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
@@ -362,20 +367,22 @@
                     if (!frames.length) return;
                     let cur = 0;
 
-                    // Build dots
-                    const dotsEl = document.createElement('div');
-                    dotsEl.className = 'gallery-dots';
-                    frames.forEach((_, i) => {
-                        const d = document.createElement('span');
-                        d.className = 'gdot' + (i === 0 ? ' active' : '');
-                        dotsEl.appendChild(d);
-                    });
-                    section.appendChild(dotsEl);
+                    // Build side arrows
+                    const makeArrow = dir => {
+                        const el = document.createElement('div');
+                        el.className = `gallery-arrow ${dir}`;
+                        el.innerHTML = '<div class="arr"></div>';
+                        section.appendChild(el);
+                        return el;
+                    };
+                    const leftArr  = makeArrow('left');
+                    const rightArr = makeArrow('right');
 
-                    function updateDots(i) {
-                        dotsEl.querySelectorAll('.gdot').forEach((d, j) => d.classList.toggle('active', j === i));
-                        const bright = frames[i]?.classList.contains('bg-white');
-                        dotsEl.classList.toggle('on-white', bright);
+                    function updateArrows() {
+                        const bright = frames[cur]?.classList.contains('bg-white');
+                        [leftArr, rightArr].forEach(a => a.classList.toggle('on-white', bright));
+                        leftArr.classList.toggle('hidden', cur === 0);
+                        rightArr.classList.toggle('hidden', cur === frames.length - 1);
                     }
 
                     function goToFrame(i) {
@@ -387,13 +394,13 @@
                         loadFrameVideos(frames[cur - 1]);
                         const bright = frames[cur]?.classList.contains('bg-white') ?? false;
                         setNavColor(bright);
-                        updateDots(cur);
+                        updateArrows();
                         // show scroll hint once the last slide is reached
                         if (cur === frames.length - 1) showScrollHint(bright);
                         scrollHint.classList.toggle('on-white', bright);
                     }
 
-                    updateDots(0);
+                    updateArrows();
 
                     section.addEventListener('click', e => {
                         if (e.target.closest('a')) return;
