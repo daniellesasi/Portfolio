@@ -32,9 +32,11 @@
 
         /* horizontal slides inside each gallery, navigated by click */
         .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
-        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
+        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
+        /* design canvas: 1920x1080 internal layout, scaled to fit viewport */
+        .canvas-inner { position: relative; width: 1920px; height: 1080px; flex-shrink: 0; transform: scale(var(--canvas-scale, 1)); transform-origin: center center; }
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
         .canvas-frame .txt-layer { position: absolute; user-select: none; pointer-events: none; overflow: hidden; overflow-wrap: break-word; box-sizing: border-box; }
 
@@ -310,6 +312,34 @@
     <script>
         document.fonts.load('1em Anton').then(() => {
             document.querySelectorAll('.side-menu').forEach(m => m.style.opacity = '1');
+        });
+
+        // ── RESPONSIVE: 1920×1080 design canvas, scaled to fit viewport ──
+        const DESIGN_W = 1920, DESIGN_H = 1080;
+
+        function updateCanvasScale() {
+            const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+            document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
+        }
+        updateCanvasScale();
+        window.addEventListener('resize', updateCanvasScale);
+
+        // Wrap each canvas-frame's content in a .canvas-inner (the design canvas)
+        document.querySelectorAll('.canvas-frame').forEach(frame => {
+            if (frame.querySelector(':scope > .canvas-inner')) return;
+            const inner = document.createElement('div');
+            inner.className = 'canvas-inner';
+            while (frame.firstChild) inner.appendChild(frame.firstChild);
+            frame.appendChild(inner);
+        });
+
+        // Convert inline font-size:Xvw → font-size:Ypx (Y = X × DESIGN_W/100)
+        // So text scales with the design canvas instead of the raw viewport width.
+        document.querySelectorAll('.txt-layer').forEach(el => {
+            const style = el.getAttribute('style') || '';
+            const fixed = style.replace(/font-size:\s*([\d.]+)vw/g, (_, v) =>
+                `font-size:${(parseFloat(v) * DESIGN_W / 100).toFixed(1)}px`);
+            if (fixed !== style) el.setAttribute('style', fixed);
         });
 
         // ── NAV COLOR ────────────────────────────────────────────────────────
