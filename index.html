@@ -51,11 +51,11 @@
         .project-section:hover .gallery-arrow:not(.hidden) { opacity: 1; }
 
         /* ── SCROLL HINT ── */
-        #scroll-hint { position: fixed; bottom: 36px; right: 44px; z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
-        #scroll-hint.visible { opacity: 1; }
-        .sh-line { width: 1px; height: 22px; border-radius: 1px; }
-        .sh-arrow { width: 9px; height: 9px; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: rotate(45deg); animation: sh-bounce 1.6s ease-in-out infinite; }
-        @keyframes sh-bounce { 0%,100%{transform:rotate(45deg) translate(0,0);} 55%{transform:rotate(45deg) translate(3px,3px);} }
+        #scroll-hint { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        #scroll-hint.visible { animation: sh-blink 3.2s ease forwards; }
+        @keyframes sh-blink { 0%{opacity:0} 10%{opacity:1} 40%{opacity:1} 65%{opacity:0.2} 80%{opacity:1} 95%{opacity:0.2} 100%{opacity:0} }
+        .sh-line { width: 2px; height: 32px; border-radius: 1px; }
+        .sh-arrow { width: 14px; height: 14px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); }
         #scroll-hint.on-white .sh-line { background: #000; }
         #scroll-hint.on-white .sh-arrow { border-color: #000; }
         #scroll-hint:not(.on-white) .sh-line { background: #fff; }
@@ -337,11 +337,18 @@
         document.querySelectorAll('.project-section').forEach(s => sectionLoader.observe(s));
 
         const scrollHint = document.getElementById('scroll-hint');
+        let scrollHintTimer = null;
         function showScrollHint(bright) {
             scrollHint.classList.toggle('on-white', bright);
+            // restart animation
+            scrollHint.classList.remove('visible');
+            scrollHint.offsetWidth; // reflow to reset animation
             scrollHint.classList.add('visible');
+            clearTimeout(scrollHintTimer);
+            scrollHintTimer = setTimeout(() => scrollHint.classList.remove('visible'), 3300);
         }
         function hideScrollHint() {
+            clearTimeout(scrollHintTimer);
             scrollHint.classList.remove('visible');
         }
 
