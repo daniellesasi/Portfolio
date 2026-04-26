@@ -332,12 +332,9 @@
         document.querySelectorAll('.project-section').forEach(s => sectionLoader.observe(s));
 
         const scrollHint = document.getElementById('scroll-hint');
-        let scrollHintShown = false;
-
         function showScrollHint(bright) {
             scrollHint.classList.toggle('on-white', bright);
             scrollHint.classList.add('visible');
-            scrollHintShown = true;
         }
         function hideScrollHint() {
             scrollHint.classList.remove('visible');
@@ -391,8 +388,8 @@
                         const bright = frames[cur]?.classList.contains('bg-white') ?? false;
                         setNavColor(bright);
                         updateDots(cur);
-                        // show scroll hint after first interaction
-                        if (!scrollHintShown) showScrollHint(bright);
+                        // show scroll hint once the last slide is reached
+                        if (cur === frames.length - 1) showScrollHint(bright);
                         scrollHint.classList.toggle('on-white', bright);
                     }
 
