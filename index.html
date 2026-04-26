@@ -51,15 +51,19 @@
         .project-section:hover .gallery-arrow:not(.hidden) { opacity: 1; }
 
         /* ── SCROLL HINT ── */
-        #scroll-hint { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
-        #scroll-hint.visible { animation: sh-blink 3.2s ease forwards; }
-        @keyframes sh-blink { 0%{opacity:0} 10%{opacity:1} 40%{opacity:1} 65%{opacity:0.2} 80%{opacity:1} 95%{opacity:0.2} 100%{opacity:0} }
-        .sh-line { width: 2px; height: 32px; border-radius: 1px; }
-        .sh-arrow { width: 14px; height: 14px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); }
-        #scroll-hint.on-white .sh-line { background: #000; }
-        #scroll-hint.on-white .sh-arrow { border-color: #000; }
-        #scroll-hint:not(.on-white) .sh-line { background: #fff; }
-        #scroll-hint:not(.on-white) .sh-arrow { border-color: #fff; }
+        #scroll-hint { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; pointer-events: none; }
+        #scroll-hint.visible { animation: sh-blink 3.6s ease forwards; }
+        @keyframes sh-blink { 0%{opacity:0;transform:translateX(-50%) translateY(10px)} 12%{opacity:1;transform:translateX(-50%) translateY(0)} 45%{opacity:1} 65%{opacity:0.15} 80%{opacity:1} 95%{opacity:0.15} 100%{opacity:0} }
+        .sh-label { font-family:'Anton',sans-serif; font-size: 0.75rem; letter-spacing: 3px; }
+        .sh-chevrons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .sh-chev { width: 22px; height: 22px; border-right: 3px solid; border-bottom: 3px solid; transform: rotate(45deg); }
+        .sh-chev:nth-child(1) { opacity: 0.4; }
+        .sh-chev:nth-child(2) { opacity: 0.7; }
+        .sh-chev:nth-child(3) { opacity: 1; }
+        #scroll-hint.on-white .sh-label,
+        #scroll-hint.on-white .sh-chev { color: #000; border-color: #000; }
+        #scroll-hint:not(.on-white) .sh-label,
+        #scroll-hint:not(.on-white) .sh-chev { color: #fff; border-color: #fff; }
 
         /* ── MOBILE ── */
         #rotate-prompt {
@@ -283,7 +287,14 @@
         </main>
     </div>
 
-    <div id="scroll-hint"><div class="sh-line"></div><div class="sh-arrow"></div></div>
+    <div id="scroll-hint">
+        <div class="sh-label">SCROLL</div>
+        <div class="sh-chevrons">
+            <div class="sh-chev"></div>
+            <div class="sh-chev"></div>
+            <div class="sh-chev"></div>
+        </div>
+    </div>
 
     <div id="rotate-prompt">
         <div id="rotate-phone">
