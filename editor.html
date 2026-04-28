@@ -703,9 +703,23 @@ async function saveAll(){
   for(const l of uploads){
     st(`Uploading ${l.filename} (${++done}/${uploads.length})…`);
     try{
-      const ex=await gh(l.filename); const sha=ex.ok?(await ex.json()).sha:undefined;
-      const body={message:`Upload ${l.filename}`,content:l.b64,branch:BRANCH}; if(sha)body.sha=sha;
-      const res=await gh(l.filename,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      // Helper: PUT with current SHA (or none for new files)
+      async function putFile(sha){
+        const body={message:`Upload ${l.filename}`,content:l.b64,branch:BRANCH};
+        if(sha) body.sha=sha;
+        return gh(l.filename,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      }
+      // First attempt: fetch SHA if file exists, then PUT
+      const ex=await gh(l.filename);
+      let sha = ex.ok ? (await ex.json()).sha : undefined;
+      let res = await putFile(sha);
+      // 409/422 commonly mean SHA is stale → refetch and retry once
+      if(res.status===409 || res.status===422){
+        console.warn(`${l.filename}: ${res.status}, refreshing SHA and retrying…`);
+        const ex2=await gh(l.filename);
+        sha = ex2.ok ? (await ex2.json()).sha : undefined;
+        res = await putFile(sha);
+      }
       if(!res.ok){
         const errText=await res.text();
         console.error('Upload failed:', res.status, errText);
