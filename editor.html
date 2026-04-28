@@ -207,6 +207,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 </div>
 
 <script>
+console.log('🔧 Editor v2026-04-28-order-fix loaded');
 const REPO='daniellesasi/Portfolio', BRANCH='main', BASE='https://daniellesasi.github.io/Portfolio/';
 const PORTS=['a1','a2'], NB=7;
 
@@ -307,6 +308,7 @@ function parseHTML(){
     const seenSet = new Set(fromHtml);
     const missing = defaultOrder.filter(id => !seenSet.has(id));
     sectionOrder[pi] = fromHtml.length ? [...fromHtml, ...missing] : defaultOrder;
+    console.log(`[parseHTML] ${portId} order from HTML:`, sectionOrder[pi].join(','));
   });
 }
 
@@ -729,6 +731,7 @@ async function saveAll(){
 }
 
 function buildHTML(){
+  console.log('[buildHTML] sectionOrder:', JSON.stringify(sectionOrder));
   let html=idxHTML;
   // 1. Replace each section's slide content
   Object.entries(sections).forEach(([id,slides])=>{
