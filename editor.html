@@ -244,8 +244,16 @@ async function load(){
 
 function parseHTML(){
   sections={};
+  sectionOrder={};
   const doc=new DOMParser().parseFromString(idxHTML,'text/html');
-  PORTS.forEach(port=>{
+  PORTS.forEach((port,pi)=>{
+    // Read actual gallery order from the HTML (preserves user's reorder)
+    const portId = pi===0 ? 'port1' : 'port2';
+    const wrapper = doc.getElementById(portId);
+    const orderInHtml = wrapper
+      ? Array.from(wrapper.querySelectorAll('main .project-section')).map(s=>s.id).filter(Boolean)
+      : [];
+
     for(let b=1;b<=NB;b++){
       const id=`${port}b${b}`, sec=doc.getElementById(id), slides=[];
       if(sec){
@@ -292,9 +300,14 @@ function parseHTML(){
       if(!slides.length) slides.push({layers:[]});
       sections[id]=slides;
     }
+    // Use HTML order if present (filtered to known IDs), otherwise default order
+    const defaultOrder = Array.from({length:NB},(_,i)=>`${port}b${i+1}`);
+    const known = new Set(defaultOrder);
+    const fromHtml = orderInHtml.filter(id => known.has(id));
+    const seenSet = new Set(fromHtml);
+    const missing = defaultOrder.filter(id => !seenSet.has(id));
+    sectionOrder[pi] = fromHtml.length ? [...fromHtml, ...missing] : defaultOrder;
   });
-  // init section order
-  PORTS.forEach((port,pi)=>{ sectionOrder[pi]=Array.from({length:NB},(_,i)=>`${port}b${i+1}`); });
 }
 
 // ── GRID ─────────────────────────────────────────────────────────────────────
@@ -786,17 +799,21 @@ function reorderPortHTML(html, pi){
 }
 
 async function pushHTML(){
-  const html=buildHTML();
-  const enc=btoa(unescape(encodeURIComponent(html)));
-  let sha=idxSha;
-  // If sha is stale (conflict), fetch fresh sha and retry once
-  let res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha,branch:BRANCH})});
+  let html=buildHTML();
+  let enc=btoa(unescape(encodeURIComponent(html)));
+  let res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha:idxSha,branch:BRANCH})});
   if(res.status===409||res.status===422){
-    st('Conflict — fetching latest sha…');
+    // Conflict: GitHub has newer content. Refresh idxHTML and rebuild on top of it
+    // so external changes (e.g. terminal pushes) aren't overwritten.
+    st('Conflict — refreshing base & rebuilding…');
     const fresh=await gh('index.html');
-    if(!fresh.ok) throw new Error('Could not refresh sha');
-    sha=(await fresh.json()).sha;
-    res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha,branch:BRANCH})});
+    if(!fresh.ok) throw new Error('Could not refresh: '+fresh.status);
+    const d=await fresh.json();
+    idxSha=d.sha;
+    idxHTML=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+    html=buildHTML();  // rebuild with fresh base
+    enc=btoa(unescape(encodeURIComponent(html)));
+    res=await gh('index.html',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update portfolio',content:enc,sha:idxSha,branch:BRANCH})});
   }
   if(!res.ok) throw new Error(await res.text());
   const d=await res.json(); idxSha=d.content.sha; idxHTML=html;
