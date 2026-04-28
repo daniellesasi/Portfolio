@@ -23,6 +23,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 #st { font-size:.72rem; color:#aaa; }
 #st.ok { color:#00ee66; }
 #st.er { color:#f66; }
+#st.warn { color:#ffb84d; font-weight:bold; }
 
 /* GRID */
 #app { height:calc(100vh - 50px); display:flex; flex-direction:column; }
@@ -218,13 +219,28 @@ let sectionOrder={}; // { portIdx: ['a1b1','a1b2',...] }
 let activeSec=null, activeSlide=0, selId=null;
 let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,orot}
 let autoSaveTimer=null;
+let unsaved=false;  // true when there are pending changes not yet pushed
 
 function queuePush(){
   if(!idxSha||!tok()) return;
+  unsaved=true;
   clearTimeout(autoSaveTimer);
-  st('Unsaved changes…','');
-  autoSaveTimer=setTimeout(()=>saveAll(), 3000);
+  st('● Unsaved — saving in 2s…','warn');
+  autoSaveTimer=setTimeout(()=>saveAll(), 2000);
 }
+
+// Warn before unload if there are unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (unsaved) { e.preventDefault(); e.returnValue=''; return ''; }
+});
+
+// If the tab gets hidden (tab switch / minimize), flush the pending save now
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && unsaved && autoSaveTimer) {
+    clearTimeout(autoSaveTimer); autoSaveTimer=null;
+    saveAll();  // fire-and-forget; the request is queued before tab is suspended
+  }
+});
 
 const $ = id => document.getElementById(id);
 const tok = () => { token=$('tok').value.trim()||localStorage.getItem('gh_t')||''; $('tok').value=token; if(token)localStorage.setItem('gh_t',token); return token; };
@@ -735,8 +751,12 @@ async function saveAll(){
     }
   }
   st('Updating index.html…');
-  try{ await pushHTML(); st(`✓ ${uploads.length} file(s) + index.html saved`,'ok'); console.log('Push complete');}
-  catch(e){
+  try{
+    await pushHTML();
+    unsaved=false;
+    st(`✓ ${uploads.length} file(s) + index.html saved`,'ok');
+    console.log('Push complete');
+  } catch(e){
     console.error('pushHTML failed:', e);
     alert(`index.html push failed:\n${e.message}`);
     st('index.html failed','er');
