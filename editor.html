@@ -186,6 +186,12 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
             <button class="tp-tog" id="tp-italic" onclick="toggleTextProp('italic','tp-italic')">I</button>
             <button class="tp-tog" id="tp-al" onclick="cycleAlign()">≡</button>
           </div>
+          <label>Snap to standard slot</label>
+          <div class="tp-row">
+            <button class="tp-tog" onclick="snapText('title')" title="Snap to title slot (top-left, large bold)">Title</button>
+            <button class="tp-tog" onclick="snapText('body')" title="Snap to body slot (left column, small)">Body</button>
+            <button class="tp-tog" id="tp-lock" onclick="toggleLock()" title="Lock so it can't be dragged">🔒</button>
+          </div>
         </div>
       </div>
       <div id="canvas-wrap">
@@ -287,7 +293,8 @@ function parseHTML(){
             const lh=parseFloat((s.match(/height:([\d.]+)%/)||[,100])[1]);
             const lr=parseFloat((s.match(/rotate\(([-\d.]+)deg\)/)||[,0])[1]);
             const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
-            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover'});
+            const locked = el.hasAttribute('data-locked');
+            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(locked&&{locked:true})});
           });
           frame.querySelectorAll('.txt-layer').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
@@ -303,7 +310,8 @@ function parseHTML(){
             const bold=/font-weight:\s*bold/.test(s);
             const italic=/font-style:\s*italic/.test(s);
             const fontFamily=(s.match(/font-family:'([^']+)'/)|| s.match(/font-family:([^;,'"]+)/)||[,'Anton'])[1].trim();
-            layers.push({id:`l${Date.now()+li+500}`,type:'text',text:el.textContent,x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fontSize,fontFamily,color,align,bold,italic});
+            const locked = el.hasAttribute('data-locked');
+            layers.push({id:`l${Date.now()+li+500}`,type:'text',text:el.textContent,x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fontSize,fontFamily,color,align,bold,italic,...(locked&&{locked:true})});
           });
           slides.push({layers,bg,...(isDraft&&{draft:true})});
         });
@@ -545,6 +553,7 @@ function syncTextProps(layer){
   $('tp-color').value=layer.color||'#ffffff';
   $('tp-bold').classList.toggle('on',!!layer.bold);
   $('tp-italic').classList.toggle('on',!!layer.italic);
+  $('tp-lock').classList.toggle('on',!!layer.locked);
 }
 
 function getLayer(lid){ return sections[activeSec]?.[activeSlide]?.layers?.find(l=>l.id===lid); }
@@ -571,13 +580,13 @@ canvas.addEventListener('mousedown',e=>{
 
 document.querySelectorAll('.handle').forEach(h=>{
   h.addEventListener('mousedown',e=>{
-    const layer=getLayer(selId); if(!layer)return;
+    const layer=getLayer(selId); if(!layer||layer.locked)return;
     drag={type:'resize',handle:h.dataset.h,sx:e.clientX,sy:e.clientY,ox:layer.x,oy:layer.y,ow:layer.w,oh:layer.h}; e.preventDefault(); e.stopPropagation();
   });
 });
 
 $('rot-h').addEventListener('mousedown',e=>{
-  const layer=getLayer(selId); if(!layer)return;
+  const layer=getLayer(selId); if(!layer||layer.locked)return;
   const c=canvas, sb=$('sel-box');
   const cr=c.getBoundingClientRect(), sr=sb.getBoundingClientRect();
   const cx=(sr.left+sr.right)/2, cy=(sr.top+sr.bottom)/2;
@@ -590,6 +599,10 @@ document.addEventListener('mousemove',e=>{
   const c=canvas, cw=c.clientWidth, ch=c.clientHeight;
   const cr=c.getBoundingClientRect();
   const dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+  // Ignore tiny mouse movements (prevents accidental drift on click-to-select)
+  if(!drag.moved && Math.abs(dx)<5 && Math.abs(dy)<5) return;
+  drag.moved = true;
+  if(layer.locked) return;
   const dxp=dx/cw*100, dyp=dy/ch*100;
 
   if(drag.type==='move'){
@@ -612,7 +625,7 @@ document.addEventListener('mousemove',e=>{
   updateSelBox(layer);
 });
 
-document.addEventListener('mouseup',()=>{ if(drag) queuePush(); drag=null; });
+document.addEventListener('mouseup',()=>{ if(drag && drag.moved) queuePush(); drag=null; });
 
 // Drop files onto canvas
 canvas.addEventListener('dragover',e=>e.preventDefault());
@@ -707,6 +720,29 @@ function cycleAlign(){
   updateTextProp('align',layer.align);
 }
 
+// Standard title/body slot positions (consistent across all sections)
+const TITLE_SLOT = { x: 8.2, y: 5.5,  w: 22.0, h: 30.7, fontSize: 2.5, fontFamily: 'monospace', bold: true,  align: 'left',  color: '#000000' };
+const BODY_SLOT  = { x: 8.3, y: 32.0, w: 19.5, h: 56.4, fontSize: 1.0, fontFamily: 'sans-serif', bold: false, align: 'left',  color: '#000000' };
+
+function snapText(slot){
+  const layer=getLayer(selId); if(!layer||layer.type!=='text')return;
+  const t = slot==='title' ? TITLE_SLOT : BODY_SLOT;
+  Object.assign(layer, t, { rot: 0 });
+  layer.locked = true;  // auto-lock after snapping so it doesn't drift
+  showSlide(activeSlide);
+  showTextProps(layer);
+  updateSelBox(layer);
+  $('tp-lock').classList.add('on');
+  queuePush();
+}
+
+function toggleLock(){
+  const layer=getLayer(selId); if(!layer)return;
+  layer.locked = !layer.locked;
+  $('tp-lock').classList.toggle('on', !!layer.locked);
+  queuePush();
+}
+
 // ── SAVE ─────────────────────────────────────────────────────────────────────
 async function saveAll(){
   if(!tok()){alert('No GitHub token — enter your token and click Load first.');return;}
@@ -777,13 +813,14 @@ function buildHTML(){
       let frame=`<div class="canvas-frame${bgClass}${draftClass}">`;
       slide.layers.sort((a,b)=>a.z-b.z).forEach(layer=>{
         const pos=`position:absolute;left:${layer.x.toFixed(1)}%;top:${layer.y.toFixed(1)}%;width:${layer.w.toFixed(1)}%;height:${layer.h.toFixed(1)}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};`;
+        const lockAttr = layer.locked ? ' data-locked="1"' : '';
         if(layer.type==='text'){
           const style=pos+`font-size:${layer.fontSize||4}vw;font-family:'${layer.fontFamily||'Anton'}',sans-serif;color:${layer.color||'#ffffff'};text-align:${layer.align||'left'};font-weight:${layer.bold?'bold':'normal'};font-style:${layer.italic?'italic':'normal'};word-break:break-word;display:flex;align-items:center;padding:4px 8px;box-sizing:border-box;`;
-          frame+=`<div class="txt-layer" style="${style}">${layer.text||''}</div>`;
+          frame+=`<div class="txt-layer"${lockAttr} style="${style}">${layer.text||''}</div>`;
         } else {
           const style=pos+`object-fit:${layer.fit||'cover'};`;
-          if(layer.type==='video') frame+=`<video src="${layer.filename||layer.src}" style="${style}" autoplay loop muted playsinline></video>`;
-          else frame+=`<img src="${layer.filename||layer.src}" style="${style}" loading="lazy" alt="">`;
+          if(layer.type==='video') frame+=`<video src="${layer.filename||layer.src}"${lockAttr} style="${style}" autoplay loop muted playsinline></video>`;
+          else frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
         }
       });
       frame+='</div>\n                    ';
