@@ -152,22 +152,18 @@
             transition: opacity 0.6s ease;
         }
 
-        /* ── ABOUT PAGE (port2) ── */
+        /* ── ABOUT PAGE (port2) — uses the same monospace/sans-serif vocabulary as slides ── */
         .about-wrapper { background: #fff; color: #000; }
         .about-wrapper.active { display: block; }
         .about-scroll { width: 100vw; height: 100vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
         .about-scroll::-webkit-scrollbar { display: none; }
-        .about-content { max-width: 880px; margin: 0 auto; padding: 110px 80px 120px; font-family: 'Anton', sans-serif; }
-        .about-name { font-family: 'Anton', sans-serif; font-size: 5rem; letter-spacing: 4px; line-height: 1; margin: 0 0 60px; }
-        .about-section-label { font-family: monospace; font-size: 0.95rem; letter-spacing: 6px; text-transform: uppercase; font-weight: bold; margin: 56px 0 18px; padding-bottom: 8px; border-bottom: 1.5px solid #000; }
-        .about-bio { font-family: sans-serif; font-size: 1rem; letter-spacing: 0.3px; line-height: 1.7; margin: 0 0 18px; max-width: 720px; }
-        .about-list { list-style: none; padding: 0; margin: 0; }
-        .about-list li { display: flex; gap: 26px; padding: 12px 0; border-bottom: 1px dashed rgba(0,0,0,0.15); font-family: sans-serif; font-size: 0.92rem; line-height: 1.5; }
-        .about-list li:last-child { border-bottom: none; }
-        .about-tag { flex: 0 0 200px; font-family: monospace; font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; padding-top: 2px; }
-        .about-val { flex: 1; }
-        .about-val a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-        .about-val a:hover { opacity: 0.6; }
+        .about-content { max-width: 640px; margin: 0 auto; padding: 90px 40px 100px; }
+        .about-title { font-family: monospace; font-size: 2.2rem; font-weight: bold; letter-spacing: 3px; line-height: 1.15; margin: 0 0 56px; }
+        .about-h { font-family: monospace; font-size: 0.78rem; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; margin: 44px 0 12px; }
+        .about-content p { font-family: sans-serif; font-size: 0.92rem; line-height: 1.65; margin: 0 0 6px; }
+        .about-content p + p { margin-top: 6px; }
+        .about-content a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+        .about-content a:hover { opacity: 0.55; }
 
         @media (max-width: 768px) and (orientation: portrait) {
             .portfolio-wrapper { display: none !important; }
@@ -176,14 +172,11 @@
             #rotate-prompt { display: flex; }
         }
 
-        /* About page on mobile landscape */
         @media (max-height: 500px) {
-            .about-content { padding: 60px 60px 80px; }
-            .about-name { font-size: 3rem; margin-bottom: 36px; }
-            .about-section-label { font-size: 0.78rem; margin: 36px 0 12px; letter-spacing: 4px; }
-            .about-bio { font-size: 0.85rem; }
-            .about-list li { font-size: 0.78rem; gap: 16px; padding: 8px 0; }
-            .about-tag { flex-basis: 140px; font-size: 0.66rem; letter-spacing: 1.5px; }
+            .about-content { padding: 50px 36px 70px; max-width: 560px; }
+            .about-title { font-size: 1.7rem; margin-bottom: 32px; letter-spacing: 2px; }
+            .about-h { font-size: 0.66rem; margin: 28px 0 8px; letter-spacing: 2px; }
+            .about-content p { font-size: 0.78rem; line-height: 1.55; }
         }
 
         /* ── MOBILE LANDSCAPE: scale UI chrome down to fit short screens ── */
@@ -322,43 +315,32 @@ The team is a collective of high-end fashion designers from the luxury industry 
     <div id="port2" class="portfolio-wrapper about-wrapper">
         <div class="about-scroll">
             <div class="about-content">
-                <h1 class="about-name">DANIELLE SASI</h1>
-                <h2 class="about-section-label">About</h2>
-                <p class="about-bio">
-                    3D Artist with over a decade of experience as a Creative Design Lead in the luxury fashion industry. After an accomplished career designing ready-to-wear, I have transitioned into the gaming space, applying my expertise in garment construction and creative concepts to virtual worlds.
-                </p>
-                <p class="about-bio">
-                    My background includes serving as Creative Lead and Head of Design at PANGAIA, designing runway and commercial collections at JW Anderson, and co-founding the digital fashion brand PERSONA. Backed by formal coursework in Computer Science at Tel Aviv University and Unreal Engine training with Epic Games, I now use Unreal Engine 5, Blender, Marvelous Designer, and CLO3D to build highly detailed characters, garments, materials and interactive environments.
-                </p>
+                <h1 class="about-title">DANIELLE SASI</h1>
 
-                <h2 class="about-section-label">Technical Skills</h2>
-                <ul class="about-list">
-                    <li><span class="about-tag">3D &amp; Game Development</span><span class="about-val">Unreal Engine 5, Blender, Marvelous Designer, CLO3D</span></li>
-                    <li><span class="about-tag">2D &amp; Visualization</span><span class="about-val">Adobe Photoshop, Adobe Illustrator</span></li>
-                    <li><span class="about-tag">Specialties</span><span class="about-val">3D Draping, Structural Pattern Cutting, Cloth Simulations, Character Skins, Rapid Prototyping</span></li>
-                </ul>
+                <h2 class="about-h">About</h2>
+                <p>3D Artist with over a decade of experience as a Creative Design Lead in the luxury fashion industry. After an accomplished career designing ready-to-wear, I have transitioned into the gaming space, applying my expertise in garment construction and creative concepts to virtual worlds.</p>
+                <p>My background includes serving as Creative Lead and Head of Design at PANGAIA, designing runway and commercial collections at JW Anderson, and co-founding the digital fashion brand PERSONA. Backed by formal coursework in Computer Science at Tel Aviv University and Unreal Engine training with Epic Games, I now use Unreal Engine 5, Blender, Marvelous Designer, and CLO3D to build highly detailed characters, garments, materials and interactive environments.</p>
 
-                <h2 class="about-section-label">Experience</h2>
-                <ul class="about-list">
-                    <li><span class="about-tag">2020 — Present</span><span class="about-val">Creative Lead &amp; Head of Design · PANGAIA</span></li>
-                    <li><span class="about-tag">Co-Founder</span><span class="about-val">PERSONA</span></li>
-                    <li><span class="about-tag">2016 — 2020</span><span class="about-val">Designer (MRTW &amp; WRTW) · JW Anderson</span></li>
-                    <li><span class="about-tag">2015</span><span class="about-val">Design Experience · Raf Simons</span></li>
-                </ul>
+                <h2 class="about-h">Technical Skills</h2>
+                <p>3D &amp; Game Development — Unreal Engine 5, Blender, Marvelous Designer, CLO3D</p>
+                <p>2D &amp; Visualization — Adobe Photoshop, Adobe Illustrator</p>
+                <p>Specialties — 3D Draping, Structural Pattern Cutting, Cloth Simulations, Character Skins, Rapid Prototyping</p>
 
-                <h2 class="about-section-label">Education &amp; Training</h2>
-                <ul class="about-list">
-                    <li><span class="about-tag">Epic Games</span><span class="about-val">Unreal Engine Course</span></li>
-                    <li><span class="about-tag">Tel Aviv University</span><span class="about-val">Computer Science Course</span></li>
-                    <li><span class="about-tag">2010 — 2014</span><span class="about-val">BA in Fashion Design · Shenkar College of Engineering and Design</span></li>
-                    <li><span class="about-tag">2009</span><span class="about-val">Art Theory Coursework · Open University of Tel Aviv</span></li>
-                </ul>
+                <h2 class="about-h">Experience</h2>
+                <p>Creative Lead &amp; Head of Design — PANGAIA — 2020 to Present</p>
+                <p>Co-Founder — PERSONA</p>
+                <p>Designer (MRTW &amp; WRTW) — JW Anderson — 2016 to 2020</p>
+                <p>Design Experience — Raf Simons — 2015</p>
 
-                <h2 class="about-section-label">Contact</h2>
-                <ul class="about-list">
-                    <li><span class="about-tag">Email</span><span class="about-val"><a href="mailto:dnlssdnl@gmail.com">dnlssdnl@gmail.com</a></span></li>
-                    <li><span class="about-tag">Phone</span><span class="about-val"><a href="tel:+447490569643">+44 (0) 7490569643</a></span></li>
-                </ul>
+                <h2 class="about-h">Education &amp; Training</h2>
+                <p>Unreal Engine Course — Epic Games</p>
+                <p>Computer Science Course — Tel Aviv University</p>
+                <p>BA in Fashion Design — Shenkar College of Engineering and Design — 2010 to 2014</p>
+                <p>Art Theory Coursework — Open University of Tel Aviv — 2009</p>
+
+                <h2 class="about-h">Contact</h2>
+                <p><a href="mailto:dnlssdnl@gmail.com">dnlssdnl@gmail.com</a></p>
+                <p><a href="tel:+447490569643">+44 (0) 7490569643</a></p>
             </div>
         </div>
     </div>
