@@ -140,7 +140,8 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
   <input class="inp" id="tok" type="password" placeholder="GitHub Personal Access Token">
   <button class="btn w" onclick="load()">Load</button>
   <button class="btn g" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
-  <button class="btn" onclick="snapAllText()" title="Snap every text layer in every section to the standard title/body slots">Align all text</button>
+  <button class="btn" onclick="snapAllText()" title="Snap every text layer in every section to the standard title/body/tools slots">Align all text</button>
+  <button class="btn" onclick="addToolsCaptionToAll()" title="Add a 'tools used' caption to the first slide of every gallery">+ Tools caption</button>
   <span id="st">Enter token and click Load</span>
 </div>
 
@@ -196,6 +197,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
           <div class="tp-row">
             <button class="tp-tog" onclick="snapText('title')" title="Snap to title slot (top-left, large bold)">Title</button>
             <button class="tp-tog" onclick="snapText('body')" title="Snap to body slot (left column, small)">Body</button>
+            <button class="tp-tog" onclick="snapText('tools')" title="Snap to tools/credits caption slot (bottom-left, small italic)">Tools</button>
             <button class="tp-tog" id="tp-lock" onclick="toggleLock()" title="Lock so it can't be dragged">🔒</button>
           </div>
         </div>
@@ -776,14 +778,16 @@ function cycleAlign(){
 }
 
 // Standard title/body slot positions (consistent across all sections)
-const TITLE_SLOT = { x: 8.2, y: 5.5,  w: 22.0, h: 30.7, fontSize: 2.5, fontFamily: 'monospace', bold: true,  align: 'left',  color: '#000000' };
-const BODY_SLOT  = { x: 8.3, y: 32.0, w: 19.5, h: 56.4, fontSize: 1.0, fontFamily: 'sans-serif', bold: false, align: 'left',  color: '#000000' };
+const TITLE_SLOT = { x: 8.2, y: 5.5,  w: 22.0, h: 30.7, fontSize: 2.5,  fontFamily: 'monospace', bold: true,  align: 'left',  color: '#000000', italic: false };
+const BODY_SLOT  = { x: 8.3, y: 32.0, w: 19.5, h: 56.4, fontSize: 1.0,  fontFamily: 'sans-serif', bold: false, align: 'left',  color: '#000000', italic: false };
+const TOOLS_SLOT = { x: 8.3, y: 91.0, w: 30.0, h: 7.5, fontSize: 0.75, fontFamily: 'sans-serif', bold: false, align: 'left', color: '#000000', italic: true };
+const TOOLS_DEFAULT_TEXT = 'This was created in UE5, Blender, CLO3d and Substance';
 
 function snapText(slot){
   const layer=getLayer(selId); if(!layer||layer.type!=='text')return;
-  const t = slot==='title' ? TITLE_SLOT : BODY_SLOT;
+  const t = slot==='title' ? TITLE_SLOT : (slot==='tools' ? TOOLS_SLOT : BODY_SLOT);
   Object.assign(layer, t, { rot: 0 });
-  layer.locked = true;  // auto-lock after snapping so it doesn't drift
+  layer.locked = true;
   showSlide(activeSlide);
   showTextProps(layer);
   updateSelBox(layer);
@@ -799,13 +803,16 @@ function toggleLock(){
 }
 
 function snapAllText(){
-  if(!confirm('Snap every text layer in every gallery to the standard Title/Body slots? First text layer in each slide → Title, second → Body.')) return;
+  if(!confirm('Snap every text layer in every gallery to the standard slots? Top→Title, middle→Body, bottom→Tools.')) return;
   let snapped = 0;
   Object.values(sections).forEach(slides=>{
     slides.forEach(slide=>{
       const txts = (slide.layers||[]).filter(l=>l.type==='text').sort((a,b)=>a.y-b.y);  // top-to-bottom
       txts.forEach((layer, i)=>{
-        const t = (i === 0) ? TITLE_SLOT : BODY_SLOT;
+        let t;
+        if (i === 0) t = TITLE_SLOT;
+        else if (i === 1) t = BODY_SLOT;
+        else t = TOOLS_SLOT;  // 3rd+ text layers → Tools slot
         Object.assign(layer, t, { rot: 0, locked: true });
         snapped++;
       });
@@ -815,6 +822,34 @@ function snapAllText(){
   renderGrid();
   queuePush();
   st(`✓ Snapped ${snapped} text layers — push will save them`,'ok');
+}
+
+function addToolsCaptionToAll(){
+  if(!confirm('Add a "Tools used" caption to the first slide of every gallery?\nYou can edit each one afterwards.')) return;
+  let added = 0, skipped = 0;
+  Object.values(sections).forEach(slides=>{
+    const firstSlide = slides[0];
+    if(!firstSlide) return;
+    if(!firstSlide.layers) firstSlide.layers = [];
+    // Skip if a tools-style caption already exists in this slide (text near bottom)
+    const hasTools = firstSlide.layers.some(l => l.type==='text' && l.y >= 85);
+    if(hasTools){ skipped++; return; }
+    const layer = {
+      id: `l${Date.now()}${Math.random().toString(36).slice(2,5)}`,
+      type: 'text',
+      text: TOOLS_DEFAULT_TEXT,
+      ...TOOLS_SLOT,
+      rot: 0,
+      z: firstSlide.layers.length + 1,
+      locked: true,
+    };
+    firstSlide.layers.push(layer);
+    added++;
+  });
+  if(activeSec) showSlide(activeSlide);
+  renderGrid();
+  queuePush();
+  st(`✓ Added ${added} tools captions${skipped?` (${skipped} skipped — already had one)`:''}`,'ok');
 }
 
 // ── SAVE ─────────────────────────────────────────────────────────────────────
