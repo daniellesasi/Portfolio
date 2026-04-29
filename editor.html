@@ -200,6 +200,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
           <label>Corner radius — <span id="mp-br-val">0</span>px</label>
           <input type="range" id="mp-br" min="0" max="200" step="2" value="0" oninput="$('mp-br-val').textContent=this.value;updateMediaProp('borderRadius',+this.value)">
           <div class="tp-row">
+            <button class="tp-tog" id="mp-shadow" onclick="toggleShadow()" title="Soft drop shadow (auto: black on white bg, white on black bg)">Shadow</button>
             <button class="tp-tog" id="mp-lock" onclick="toggleLock()" title="Lock so it can't be dragged">🔒</button>
           </div>
         </div>
@@ -305,7 +306,8 @@ function parseHTML(){
             const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
             const locked = el.hasAttribute('data-locked');
             const br = parseFloat((s.match(/border-radius:([\d.]+)px/)||[,0])[1]) || 0;
-            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(br&&{borderRadius:br}),...(locked&&{locked:true})});
+            const shadow = /box-shadow:[^;]+/.test(s);
+            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(br&&{borderRadius:br}),...(shadow&&{shadow:true}),...(locked&&{locked:true})});
           });
           frame.querySelectorAll('.txt-layer').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
@@ -487,7 +489,9 @@ function buildLayerEl(layer){
   const wrap=document.createElement('div');
   wrap.dataset.lid=layer.id;
   const br = layer.borderRadius ? `border-radius:${layer.borderRadius}px;` : '';
-  wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;${br}`;
+  const slide = sections[activeSec]?.[activeSlide];
+  const sh = layer.shadow && layer.type !== 'text' ? `box-shadow:${shadowCSS(slide)};` : '';
+  wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;${br}${sh}`;
   if(layer.id===selId) wrap.style.outline='2px solid #00cc66';
   if(layer.type==='text'){
     const txt=document.createElement('div');
@@ -560,22 +564,32 @@ function showTextProps(layer){
   }
 }
 
+// Soft drop-shadow CSS based on slide bg (auto: black-on-white, white-on-black)
+function shadowCSS(slide){
+  const isWhite = slide?.bg === '#fff';
+  const c = isWhite ? '0,0,0' : '255,255,255';
+  return `0 4px 18px rgba(${c},0.22)`;
+}
+
 function syncMediaProps(layer){
   $('mp-br').value=layer.borderRadius||0;
   $('mp-br-val').textContent=layer.borderRadius||0;
   $('mp-lock').classList.toggle('on',!!layer.locked);
+  $('mp-shadow').classList.toggle('on',!!layer.shadow);
 }
 
 function updateMediaProp(prop, val){
   const layer=getLayer(selId); if(!layer)return;
   layer[prop]=val;
-  // Live update DOM
-  const wrap=canvas.querySelector(`[data-lid="${selId}"]`);
-  if(wrap){
-    const media=wrap.querySelector('img,video');
-    if(media) media.style.borderRadius = (val||0) + 'px';
-    wrap.style.borderRadius = (val||0) + 'px';
-  }
+  showSlide(activeSlide);
+  queuePush();
+}
+
+function toggleShadow(){
+  const layer=getLayer(selId); if(!layer)return;
+  layer.shadow = !layer.shadow;
+  $('mp-shadow').classList.toggle('on', !!layer.shadow);
+  showSlide(activeSlide);
   queuePush();
 }
 
@@ -872,7 +886,9 @@ function buildHTML(){
           frame+=`<div class="txt-layer"${lockAttr} style="${style}">${layer.text||''}</div>`;
         } else {
           const br = layer.borderRadius ? `border-radius:${layer.borderRadius}px;` : '';
-          const style=pos+`object-fit:${layer.fit||'cover'};${br}`;
+          // Auto-shadow: black on white bg, white on black bg
+          const sh = layer.shadow ? `box-shadow:0 4px 18px rgba(${slide.bg==='#fff'?'0,0,0':'255,255,255'},0.22);` : '';
+          const style=pos+`object-fit:${layer.fit||'cover'};${br}${sh}`;
           if(layer.type==='video') frame+=`<video src="${layer.filename||layer.src}"${lockAttr} style="${style}" autoplay loop muted playsinline></video>`;
           else frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
         }
