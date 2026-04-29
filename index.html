@@ -36,6 +36,13 @@
         .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
+
+        /* per-frame loading spinner — shows while videos in the frame are still buffering */
+        .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.25s ease; }
+        .frame-loader.visible { opacity: 1; }
+        .frame-loader::after { content: ''; width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
+        .canvas-frame.bg-white .frame-loader::after { border-color: rgba(0,0,0,0.15); border-top-color: rgba(0,0,0,0.65); }
+        @keyframes fl-spin { to { transform: rotate(360deg); } }
         /* design canvas: 1920x1080 internal layout, absolutely centered, scaled */
         .canvas-inner { position: absolute; top: 50%; left: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--canvas-scale, 1)); transform-origin: center center; }
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
@@ -109,24 +116,6 @@
             border-radius: 50%;
             border: 2px solid #fff;
         }
-        #rotate-arrow {
-            position: absolute;
-            right: -38px; top: 50%;
-            transform: translateY(-50%);
-            width: 28px; height: 28px;
-            border-top: 3px solid #fff;
-            border-right: 3px solid #fff;
-            border-radius: 0 8px 0 0;
-            animation: arrow-pulse 1.8s ease-in-out infinite;
-        }
-        #rotate-arrow::after {
-            content: '';
-            position: absolute;
-            top: -1px; right: -9px;
-            border: 6px solid transparent;
-            border-left: 10px solid #fff;
-            transform: rotate(45deg);
-        }
         #rotate-label {
             color: #fff;
             font-family: 'Anton', sans-serif;
@@ -139,11 +128,6 @@
             40%       { transform: rotate(-88deg); }
             60%       { transform: rotate(-88deg); }
         }
-        @keyframes arrow-pulse {
-            0%, 30% { opacity: 1; }
-            50%, 100% { opacity: 0.2; }
-        }
-
         #landscape-loader {
             display: none;
             position: fixed; inset: 0;
@@ -349,9 +333,7 @@ The team is a collective of high-end fashion designers from the luxury industry 
     <div id="scroll-hint"><div class="sh-label">SCROLL</div><div class="sh-chev"></div></div>
 
     <div id="rotate-prompt">
-        <div id="rotate-phone">
-            <div id="rotate-arrow"></div>
-        </div>
+        <div id="rotate-phone"></div>
         <div id="rotate-label">ROTATE PHONE</div>
     </div>
     <div id="landscape-loader"></div>
@@ -408,15 +390,40 @@ The team is a collective of high-end fashion designers from the luxury industry 
             if (s) { v.dataset.src = s; v.removeAttribute('src'); }
         });
 
-        // Load all videos in a frame (called when frame becomes active)
+        // Load all videos in a frame (called when frame becomes active).
+        // Shows a small spinner while videos buffer; hides it as soon as they can play.
         function loadFrameVideos(frame) {
             if (!frame) return;
-            frame.querySelectorAll('video[data-src]').forEach(v => {
+            const fresh = frame.querySelectorAll('video[data-src]');
+            const allVids = frame.querySelectorAll('video');
+            // If nothing to load AND every existing video is already playable, skip the loader entirely
+            const needsLoad = fresh.length > 0 || Array.from(allVids).some(v => v.readyState < 3);
+            let loader = null;
+            if (needsLoad && allVids.length) {
+                loader = frame.querySelector('.frame-loader');
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.className = 'frame-loader';
+                    frame.appendChild(loader);
+                }
+                loader.classList.add('visible');
+                let pending = allVids.length;
+                const done = () => { pending--; if (pending <= 0) loader.classList.remove('visible'); };
+                allVids.forEach(v => {
+                    if (v.readyState >= 3) { done(); return; }
+                    v.addEventListener('canplay', done, { once: true });
+                    v.addEventListener('loadeddata', done, { once: true });
+                    v.addEventListener('error', done, { once: true });
+                });
+                // Safety timeout — never leave the spinner visible forever
+                setTimeout(() => loader.classList.remove('visible'), 6000);
+            }
+            fresh.forEach(v => {
                 v.setAttribute('src', v.dataset.src);
                 v.removeAttribute('data-src');
                 v.play().catch(() => {});
             });
-            frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+            allVids.forEach(v => v.play().catch(() => {}));
         }
 
         // Section-level lazy loading: when a section scrolls into view, load its first frame's videos
