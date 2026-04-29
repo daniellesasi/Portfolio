@@ -32,11 +32,11 @@
 
         /* horizontal slides inside each gallery, navigated by click */
         .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
-        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
-        /* design canvas: 1920x1080 internal layout, scaled to fit viewport */
-        .canvas-inner { position: relative; width: 1920px; height: 1080px; flex-shrink: 0; transform: scale(var(--canvas-scale, 1)); transform-origin: center center; }
+        /* design canvas: 1920x1080 internal layout, absolutely centered, scaled */
+        .canvas-inner { position: absolute; top: 50%; left: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--canvas-scale, 1)); transform-origin: center center; }
         .canvas-frame img, .canvas-frame video { position: absolute; object-fit: cover; user-select: none; pointer-events: none; max-width: none; }
         .canvas-frame .txt-layer { position: absolute; user-select: none; pointer-events: none; overflow: hidden; overflow-wrap: break-word; box-sizing: border-box; }
 
@@ -382,7 +382,13 @@ The team is a collective of high-end fashion designers from the luxury industry 
         const DESIGN_W = 1920, DESIGN_H = 1080;
 
         function updateCanvasScale() {
-            const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+            const w = window.innerWidth, h = window.innerHeight;
+            // Mobile landscape (short viewport) → fill the screen edge-to-edge (cover).
+            // Larger screens → fit the whole 16:9 design (contain) so nothing gets cropped.
+            const isMobileLandscape = h <= 500;
+            const scale = isMobileLandscape
+                ? Math.max(w / DESIGN_W, h / DESIGN_H)
+                : Math.min(w / DESIGN_W, h / DESIGN_H);
             document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
         }
         updateCanvasScale();
