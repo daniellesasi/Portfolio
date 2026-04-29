@@ -355,10 +355,12 @@ The team is a collective of high-end fashion designers from the luxury industry 
 
         function updateCanvasScale() {
             const w = window.innerWidth, h = window.innerHeight;
-            // Mobile landscape (short viewport) → fill the screen edge-to-edge (cover).
-            // Larger screens → fit the whole 16:9 design (contain) so nothing gets cropped.
-            const isMobileLandscape = h <= 500;
-            const scale = isMobileLandscape
+            // Cover mode (fill viewport, crop the overflow) when the screen is wider than the 16:9 design
+            // — covers mobile landscape, ultrawide, etc.
+            // Fit mode (preserves all content, may letterbox) on screens narrower than 16:9 (4:3, 16:10).
+            const designRatio = DESIGN_W / DESIGN_H;
+            const viewportRatio = w / h;
+            const scale = viewportRatio >= designRatio
                 ? Math.max(w / DESIGN_W, h / DESIGN_H)
                 : Math.min(w / DESIGN_W, h / DESIGN_H);
             document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
@@ -497,11 +499,14 @@ The team is a collective of high-end fashion designers from the luxury industry 
             setTimeout(() => scrollHint.classList.remove('flying-out'), 650);
         }
 
-        // ── INITIAL LOADER: hide once the first slide can play (or after a safety timeout) ──
+        // ── INITIAL LOADER: hide as soon as the first slide has *anything* visible ──
         const initialLoader = document.getElementById('initial-loader');
         const startTime = Date.now();
-        const minVisible = 600;  // never flash too briefly
+        const minVisible = 250;  // brief floor so it doesn't just flash
+        let loaderHidden = false;
         function hideInitialLoader() {
+            if (loaderHidden) return;
+            loaderHidden = true;
             const elapsed = Date.now() - startTime;
             const wait = Math.max(0, minVisible - elapsed);
             setTimeout(() => initialLoader && initialLoader.classList.add('hidden'), wait);
@@ -509,28 +514,26 @@ The team is a collective of high-end fashion designers from the luxury industry 
         if (firstActiveFrame) {
             const firstVids = firstActiveFrame.querySelectorAll('video');
             const firstImgs = firstActiveFrame.querySelectorAll('img');
-            if (firstVids.length === 0 && firstImgs.length === 0) {
-                hideInitialLoader();
-            } else {
-                let pending = firstVids.length + firstImgs.length;
-                const done = () => { pending--; if (pending <= 0) hideInitialLoader(); };
-                firstVids.forEach(v => {
-                    if (v.readyState >= 3) { done(); return; }
-                    v.addEventListener('canplay', done, { once: true });
-                    v.addEventListener('loadeddata', done, { once: true });
-                    v.addEventListener('error', done, { once: true });
-                });
-                firstImgs.forEach(i => {
-                    if (i.complete && i.naturalWidth > 0) { done(); return; }
-                    i.addEventListener('load', done, { once: true });
-                    i.addEventListener('error', done, { once: true });
-                });
-            }
+            // Hide as soon as ANY single piece of media is ready (not all of them).
+            const firstReady = () => hideInitialLoader();
+            firstVids.forEach(v => {
+                if (v.readyState >= 2) { firstReady(); return; }
+                v.addEventListener('loadeddata', firstReady, { once: true });
+                v.addEventListener('canplay', firstReady, { once: true });
+                v.addEventListener('error', firstReady, { once: true });
+            });
+            firstImgs.forEach(i => {
+                if (i.complete && i.naturalWidth > 0) { firstReady(); return; }
+                i.addEventListener('load', firstReady, { once: true });
+                i.addEventListener('error', firstReady, { once: true });
+            });
+            // No media at all? Hide immediately.
+            if (firstVids.length === 0 && firstImgs.length === 0) hideInitialLoader();
         } else {
             hideInitialLoader();
         }
-        // Hard safety — never leave the overlay up for more than 4s
-        setTimeout(hideInitialLoader, 4000);
+        // Hard safety — never leave the overlay up for more than 2.5s
+        setTimeout(hideInitialLoader, 2500);
 
         document.addEventListener('DOMContentLoaded', () => {
             // Set initial nav color from first frame of first active section
