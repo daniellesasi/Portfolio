@@ -74,6 +74,8 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 #add-text-btn:hover { border-color:#aac; color:#fff; }
 #text-props { display:none; border-top:1px solid #3a3a3a; padding:10px 10px 6px; flex-direction:column; gap:7px; }
 #text-props.visible { display:flex; }
+#media-props { display:none; border-top:1px solid #3a3a3a; padding:10px 10px 6px; flex-direction:column; gap:7px; }
+#media-props.visible { display:flex; }
 #text-props label { font-size:.6rem; color:#999; letter-spacing:1px; text-transform:uppercase; margin-bottom:1px; }
 #text-props textarea { background:#3a3a3a; border:1px solid #555; border-radius:4px; color:#fff; font-size:.72rem; padding:5px 7px; resize:vertical; min-height:44px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; }
 #text-props textarea:focus { border-color:#00cc66; }
@@ -135,6 +137,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
   <input class="inp" id="tok" type="password" placeholder="GitHub Personal Access Token">
   <button class="btn w" onclick="load()">Load</button>
   <button class="btn g" id="saveBtn" onclick="saveAll()" disabled>Push to GitHub</button>
+  <button class="btn" onclick="snapAllText()" title="Snap every text layer in every section to the standard title/body slots">Align all text</button>
   <span id="st">Enter token and click Load</span>
 </div>
 
@@ -191,6 +194,13 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
             <button class="tp-tog" onclick="snapText('title')" title="Snap to title slot (top-left, large bold)">Title</button>
             <button class="tp-tog" onclick="snapText('body')" title="Snap to body slot (left column, small)">Body</button>
             <button class="tp-tog" id="tp-lock" onclick="toggleLock()" title="Lock so it can't be dragged">🔒</button>
+          </div>
+        </div>
+        <div id="media-props">
+          <label>Corner radius — <span id="mp-br-val">0</span>px</label>
+          <input type="range" id="mp-br" min="0" max="200" step="2" value="0" oninput="$('mp-br-val').textContent=this.value;updateMediaProp('borderRadius',+this.value)">
+          <div class="tp-row">
+            <button class="tp-tog" id="mp-lock" onclick="toggleLock()" title="Lock so it can't be dragged">🔒</button>
           </div>
         </div>
       </div>
@@ -294,7 +304,8 @@ function parseHTML(){
             const lr=parseFloat((s.match(/rotate\(([-\d.]+)deg\)/)||[,0])[1]);
             const lz=parseInt((s.match(/z-index:([\d]+)/)||[,li+1])[1]);
             const locked = el.hasAttribute('data-locked');
-            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(locked&&{locked:true})});
+            const br = parseFloat((s.match(/border-radius:([\d.]+)px/)||[,0])[1]) || 0;
+            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(br&&{borderRadius:br}),...(locked&&{locked:true})});
           });
           frame.querySelectorAll('.txt-layer').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
@@ -475,7 +486,8 @@ function toggleDraftAt(e,i){
 function buildLayerEl(layer){
   const wrap=document.createElement('div');
   wrap.dataset.lid=layer.id;
-  wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;`;
+  const br = layer.borderRadius ? `border-radius:${layer.borderRadius}px;` : '';
+  wrap.style.cssText=`position:absolute;left:${layer.x}%;top:${layer.y}%;width:${layer.w}%;height:${layer.h}%;transform:rotate(${layer.rot}deg);z-index:${layer.z};overflow:hidden;box-sizing:border-box;${br}`;
   if(layer.id===selId) wrap.style.outline='2px solid #00cc66';
   if(layer.type==='text'){
     const txt=document.createElement('div');
@@ -536,13 +548,35 @@ function selectLayer(lid,e){
 function selectLayerById(lid){ selId=lid; renderLayers(); const layer=getLayer(lid); if(layer){updateSelBox(layer);showTextProps(layer);} $('sel-box').style.display=selId?'block':'none'; showSlide(activeSlide); }
 
 function showTextProps(layer){
-  const tp=$('text-props');
+  const tp=$('text-props'), mp=$('media-props');
+  tp.classList.remove('visible');
+  mp.classList.remove('visible');
   if(layer?.type==='text'){
     tp.classList.add('visible');
     syncTextProps(layer);
-  } else {
-    tp.classList.remove('visible');
+  } else if(layer?.type==='img' || layer?.type==='video'){
+    mp.classList.add('visible');
+    syncMediaProps(layer);
   }
+}
+
+function syncMediaProps(layer){
+  $('mp-br').value=layer.borderRadius||0;
+  $('mp-br-val').textContent=layer.borderRadius||0;
+  $('mp-lock').classList.toggle('on',!!layer.locked);
+}
+
+function updateMediaProp(prop, val){
+  const layer=getLayer(selId); if(!layer)return;
+  layer[prop]=val;
+  // Live update DOM
+  const wrap=canvas.querySelector(`[data-lid="${selId}"]`);
+  if(wrap){
+    const media=wrap.querySelector('img,video');
+    if(media) media.style.borderRadius = (val||0) + 'px';
+    wrap.style.borderRadius = (val||0) + 'px';
+  }
+  queuePush();
 }
 
 function syncTextProps(layer){
@@ -743,6 +777,25 @@ function toggleLock(){
   queuePush();
 }
 
+function snapAllText(){
+  if(!confirm('Snap every text layer in every gallery to the standard Title/Body slots? First text layer in each slide → Title, second → Body.')) return;
+  let snapped = 0;
+  Object.values(sections).forEach(slides=>{
+    slides.forEach(slide=>{
+      const txts = (slide.layers||[]).filter(l=>l.type==='text').sort((a,b)=>a.y-b.y);  // top-to-bottom
+      txts.forEach((layer, i)=>{
+        const t = (i === 0) ? TITLE_SLOT : BODY_SLOT;
+        Object.assign(layer, t, { rot: 0, locked: true });
+        snapped++;
+      });
+    });
+  });
+  if(activeSec) showSlide(activeSlide);
+  renderGrid();
+  queuePush();
+  st(`✓ Snapped ${snapped} text layers — push will save them`,'ok');
+}
+
 // ── SAVE ─────────────────────────────────────────────────────────────────────
 async function saveAll(){
   if(!tok()){alert('No GitHub token — enter your token and click Load first.');return;}
@@ -818,7 +871,8 @@ function buildHTML(){
           const style=pos+`font-size:${layer.fontSize||4}vw;font-family:'${layer.fontFamily||'Anton'}',sans-serif;color:${layer.color||'#ffffff'};text-align:${layer.align||'left'};font-weight:${layer.bold?'bold':'normal'};font-style:${layer.italic?'italic':'normal'};word-break:break-word;display:flex;align-items:center;padding:4px 8px;box-sizing:border-box;`;
           frame+=`<div class="txt-layer"${lockAttr} style="${style}">${layer.text||''}</div>`;
         } else {
-          const style=pos+`object-fit:${layer.fit||'cover'};`;
+          const br = layer.borderRadius ? `border-radius:${layer.borderRadius}px;` : '';
+          const style=pos+`object-fit:${layer.fit||'cover'};${br}`;
           if(layer.type==='video') frame+=`<video src="${layer.filename||layer.src}"${lockAttr} style="${style}" autoplay loop muted playsinline></video>`;
           else frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
         }
