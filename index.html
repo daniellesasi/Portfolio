@@ -37,6 +37,11 @@
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
 
+        /* full-page initial loader — covers the site until the first slide is ready */
+        #initial-loader { position: fixed; inset: 0; background: #000; z-index: 9990; display: flex; align-items: center; justify-content: center; transition: opacity 0.45s ease; }
+        #initial-loader.hidden { opacity: 0; pointer-events: none; }
+        #initial-loader::after { content: ''; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
+
         /* per-frame loading spinner — shows while videos in the frame are still buffering */
         .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.25s ease; }
         .frame-loader.visible { opacity: 1; }
@@ -180,6 +185,8 @@
     </style>
 </head>
 <body>
+
+    <div id="initial-loader"></div>
 
     <div class="portfolio-switcher">
         <div class="circle-btn active" id="btn-port1" onclick="switchPortfolio('port1')" title="Portfolio"></div>
@@ -385,7 +392,17 @@ The team is a collective of high-end fashion designers from the luxury industry 
 
         // ── LAZY VIDEO LOADING ───────────────────────────────────────────
         // Strip src → data-src so browsers fetch nothing upfront.
+        // EXCEPT: keep the first visible frame's videos loaded eagerly so autoplay
+        // kicks in normally (otherwise some browsers show a play overlay).
+        const firstActiveFrame = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
+        const eagerVids = firstActiveFrame ? new Set(firstActiveFrame.querySelectorAll('video')) : new Set();
         document.querySelectorAll('.canvas-frame video').forEach(v => {
+            if (eagerVids.has(v)) {
+                // Make sure autoplay can fire on this very first video
+                v.muted = true;
+                v.playsInline = true;
+                return;
+            }
             const s = v.getAttribute('src');
             if (s) { v.dataset.src = s; v.removeAttribute('src'); }
         });
@@ -419,9 +436,13 @@ The team is a collective of high-end fashion designers from the luxury industry 
                 setTimeout(() => loader.classList.remove('visible'), 6000);
             }
             fresh.forEach(v => {
+                v.muted = true;
+                v.playsInline = true;
                 v.setAttribute('src', v.dataset.src);
                 v.removeAttribute('data-src');
+                // Try once now and once again when the video is ready (handles strict autoplay policies)
                 v.play().catch(() => {});
+                v.addEventListener('canplay', () => v.play().catch(() => {}), { once: true });
             });
             allVids.forEach(v => v.play().catch(() => {}));
         }
@@ -475,6 +496,41 @@ The team is a collective of high-end fashion designers from the luxury industry 
             scrollHint.classList.add('flying-out');
             setTimeout(() => scrollHint.classList.remove('flying-out'), 650);
         }
+
+        // ── INITIAL LOADER: hide once the first slide can play (or after a safety timeout) ──
+        const initialLoader = document.getElementById('initial-loader');
+        const startTime = Date.now();
+        const minVisible = 600;  // never flash too briefly
+        function hideInitialLoader() {
+            const elapsed = Date.now() - startTime;
+            const wait = Math.max(0, minVisible - elapsed);
+            setTimeout(() => initialLoader && initialLoader.classList.add('hidden'), wait);
+        }
+        if (firstActiveFrame) {
+            const firstVids = firstActiveFrame.querySelectorAll('video');
+            const firstImgs = firstActiveFrame.querySelectorAll('img');
+            if (firstVids.length === 0 && firstImgs.length === 0) {
+                hideInitialLoader();
+            } else {
+                let pending = firstVids.length + firstImgs.length;
+                const done = () => { pending--; if (pending <= 0) hideInitialLoader(); };
+                firstVids.forEach(v => {
+                    if (v.readyState >= 3) { done(); return; }
+                    v.addEventListener('canplay', done, { once: true });
+                    v.addEventListener('loadeddata', done, { once: true });
+                    v.addEventListener('error', done, { once: true });
+                });
+                firstImgs.forEach(i => {
+                    if (i.complete && i.naturalWidth > 0) { done(); return; }
+                    i.addEventListener('load', done, { once: true });
+                    i.addEventListener('error', done, { once: true });
+                });
+            }
+        } else {
+            hideInitialLoader();
+        }
+        // Hard safety — never leave the overlay up for more than 4s
+        setTimeout(hideInitialLoader, 4000);
 
         document.addEventListener('DOMContentLoaded', () => {
             // Set initial nav color from first frame of first active section
