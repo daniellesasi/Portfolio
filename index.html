@@ -32,6 +32,7 @@
 
         /* horizontal slides inside each gallery, navigated by click */
         .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
+        .horizontal-gallery.no-transition { transition: none !important; }
         .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
@@ -522,6 +523,18 @@ The team is a collective of high-end fashion designers from the luxury industry 
                         if (cur === frames.length - 1) showScrollHint(rightArr);
                     }
 
+                    // Reset gallery to slide 0 (no animation) — called when user navigates away
+                    section._resetGallery = () => {
+                        if (cur === 0) return;
+                        cur = 0;
+                        gallery.classList.add('no-transition');
+                        gallery.style.transform = 'translateX(0)';
+                        requestAnimationFrame(() => gallery.classList.remove('no-transition'));
+                        updateArrows();
+                        // pause videos in non-first frames
+                        frames.forEach((f, i) => { if (i !== 0) f.querySelectorAll('video').forEach(v => v.pause()); });
+                    };
+
                     updateArrows();
 
                     section.addEventListener('click', e => {
@@ -530,7 +543,7 @@ The team is a collective of high-end fashion designers from the luxury industry 
                     });
                 });
 
-                // ── Vertical scroll: update nav color + active number ──────
+                // ── Vertical scroll: update nav color, active number, reset other galleries ──
                 container.addEventListener('scrollend', () => {
                     const idx = Math.round(container.scrollTop / window.innerHeight);
                     const sec = sectionEls[idx];
@@ -540,7 +553,41 @@ The team is a collective of high-end fashion designers from the luxury industry 
                     setCurrentNav(idx);
                     const newRightArr = sec.querySelector('.gallery-arrow.right');
                     hideScrollHint(newRightArr);
+                    // Reset every OTHER gallery to slide 0 so navigating back always shows the first image
+                    sectionEls.forEach((s, i) => { if (i !== idx && s._resetGallery) s._resetGallery(); });
                 });
+
+                // ── Wrap-around loop: scrolling past last → first; before first → last ──
+                const lastIdx = sectionEls.length - 1;
+                function tryLoop(direction) {
+                    const idx = Math.round(container.scrollTop / window.innerHeight);
+                    const tol = 8;
+                    if (direction > 0 && idx >= lastIdx && container.scrollTop >= lastIdx * window.innerHeight - tol) {
+                        container.scrollTo({ top: 0, behavior: 'smooth' });
+                        return true;
+                    }
+                    if (direction < 0 && idx <= 0 && container.scrollTop <= tol) {
+                        container.scrollTo({ top: lastIdx * window.innerHeight, behavior: 'smooth' });
+                        return true;
+                    }
+                    return false;
+                }
+                let wheelGate = 0;
+                container.addEventListener('wheel', e => {
+                    const now = Date.now();
+                    if (now - wheelGate < 700) return;
+                    if (Math.abs(e.deltaY) < 5) return;
+                    if (tryLoop(e.deltaY)) { e.preventDefault(); wheelGate = now; }
+                }, { passive: false });
+                let touchStartY = null;
+                container.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+                container.addEventListener('touchend', e => {
+                    if (touchStartY === null) return;
+                    const dy = e.changedTouches[0].clientY - touchStartY;
+                    touchStartY = null;
+                    if (Math.abs(dy) < 40) return;
+                    tryLoop(-dy);  // swipe up (dy<0) means scrolling down
+                }, { passive: true });
 
                 // ── Side-menu links → scroll to section ──────────────────
                 navLinks.forEach(link => {
