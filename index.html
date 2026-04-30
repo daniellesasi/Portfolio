@@ -393,23 +393,27 @@ The team is a collective of high-end fashion designers from the luxury industry 
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
         }
 
-        // ── VIDEO AUTOPLAY ───────────────────────────────────────────────
-        // Mobile browsers (esp. iOS) only autoplay reliably when src is present at HTML parse time.
-        // So we DON'T strip src — we just set preload="metadata" on offscreen videos to limit bandwidth,
-        // and lock in the autoplay-friendly properties (muted/playsInline) explicitly.
+        // ── VIDEO LOADING & AUTOPLAY ───────────────────────────────────────
+        // First frame: keep autoplay attribute + preload="auto" so it autoplays at HTML parse time.
+        // All other videos: REMOVE autoplay attribute and set preload="none" — otherwise the
+        // browser starts downloading every video on the page (autoplay overrides preload).
+        // When a frame becomes active we set preload="auto" and call play() — that triggers download + play.
+        // Plus: first user gesture unlocks autoplay (handles iOS Low Power Mode etc.)
         const firstActiveFrame = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
         document.querySelectorAll('.canvas-frame video').forEach(v => {
             v.muted = true;
             v.playsInline = true;
-            v.autoplay = true;
             v.loop = true;
-            // First-frame videos: preload fully so they autoplay immediately.
-            // Other videos: just metadata so we don't burn bandwidth — browser will load more on play().
             const isFirstFrame = firstActiveFrame && firstActiveFrame.contains(v);
-            v.preload = isFirstFrame ? 'auto' : 'metadata';
+            if (isFirstFrame) {
+                v.autoplay = true;
+                v.preload = 'auto';
+            } else {
+                v.removeAttribute('autoplay');
+                v.preload = 'none';
+            }
         });
 
-        // Called when a frame becomes the active one. Triggers play() and shows a loading spinner if needed.
         function loadFrameVideos(frame) {
             if (!frame) return;
             const allVids = frame.querySelectorAll('video');
@@ -457,6 +461,17 @@ The team is a collective of high-end fashion designers from the luxury industry 
         }, { rootMargin: '100% 0px 100% 0px', threshold: 0 });
 
         document.querySelectorAll('.project-section').forEach(s => sectionLoader.observe(s));
+
+        // Unlock autoplay on first user interaction — handles iOS Low Power Mode and any other autoplay block.
+        function unlockAutoplay() {
+            document.querySelectorAll('.canvas-frame video').forEach(v => {
+                v.muted = true;
+                v.playsInline = true;
+                if (v.paused) v.play().catch(() => {});
+            });
+            ['click', 'touchstart', 'touchend'].forEach(ev => document.removeEventListener(ev, unlockAutoplay, true));
+        }
+        ['click', 'touchstart', 'touchend'].forEach(ev => document.addEventListener(ev, unlockAutoplay, true));
 
         const scrollHint = document.getElementById('scroll-hint');
         let scrollHintTimer = null;
@@ -523,9 +538,10 @@ The team is a collective of high-end fashion designers from the luxury industry 
             // Hide as soon as ANY single piece of media is ready (not all of them).
             const firstReady = () => hideInitialLoader();
             firstVids.forEach(v => {
-                if (v.readyState >= 2) { firstReady(); return; }
+                if (v.readyState >= 1) { firstReady(); return; }
+                // loadedmetadata fires after just ~few KB of video — much faster than waiting for canplay
+                v.addEventListener('loadedmetadata', firstReady, { once: true });
                 v.addEventListener('loadeddata', firstReady, { once: true });
-                v.addEventListener('canplay', firstReady, { once: true });
                 v.addEventListener('error', firstReady, { once: true });
             });
             firstImgs.forEach(i => {
@@ -539,7 +555,7 @@ The team is a collective of high-end fashion designers from the luxury industry 
             hideInitialLoader();
         }
         // Hard safety — never leave the overlay up for more than 2.5s
-        setTimeout(hideInitialLoader, 2500);
+        setTimeout(hideInitialLoader, 1500);
 
         document.addEventListener('DOMContentLoaded', () => {
             // Set initial nav color from first frame of first active section
