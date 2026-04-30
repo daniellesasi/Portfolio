@@ -707,7 +707,9 @@ function addFilesToSlide(files){
     if(file.size>25*1024*1024){st(`${file.name} too large (max 25MB)`,'er');return;}
     const ext=file.name.split('.').pop().toLowerCase();
     const fname=`${activeSec}c${cIdx++}.${ext}`;
-    const isVid=file.type.startsWith('video');
+    // Detect video by MIME type OR file extension — some browsers report empty type for .mov etc.
+    const VIDEO_EXTS = ['mp4','webm','mov','m4v','avi','ogv'];
+    const isVid = file.type.startsWith('video') || VIDEO_EXTS.includes(ext);
     const reader=new FileReader();
     reader.onload=ev=>{
       const layer={id:`l${Date.now()}`,type:isVid?'video':'img',src:'',preview:ev.target.result,b64:ev.target.result.split(',')[1],filename:fname,x:10,y:10,w:80,h:80,rot:0,z:(slide.layers.length||0)+1,fit:'cover'};

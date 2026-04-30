@@ -410,7 +410,9 @@ The team is a collective of high-end fashion designers from the luxury industry 
                 v.preload = 'auto';
             } else {
                 v.removeAttribute('autoplay');
-                v.preload = 'none';
+                // preload="metadata" downloads only ~50KB/video (first frame poster) — videos still
+                // look like videos before play(). preload="none" makes them blank black boxes.
+                v.preload = 'metadata';
             }
         });
 
