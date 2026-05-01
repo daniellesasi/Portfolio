@@ -42,10 +42,12 @@
         #initial-loader.hidden { opacity: 0; pointer-events: none; }
         #initial-loader::after { content: ''; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
 
-        /* per-frame loading spinner — shows while videos in the frame are still buffering */
-        .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.25s ease; }
-        .frame-loader.visible { opacity: 1; }
-        .frame-loader::after { content: ''; width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
+        /* per-frame loader — shows while a frame's media is still loading; content stays hidden underneath */
+        .canvas-frame > .canvas-inner { opacity: 1; transition: opacity 0.35s ease; }
+        .canvas-frame.loading > .canvas-inner { opacity: 0; }
+        .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.25s ease; }
+        .canvas-frame.loading > .frame-loader { opacity: 1; }
+        .frame-loader::after { content: ''; width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
         .canvas-frame.bg-white .frame-loader::after { border-color: rgba(0,0,0,0.15); border-top-color: rgba(0,0,0,0.65); }
         @keyframes fl-spin { to { transform: rotate(360deg); } }
         /* design canvas: 1920x1080 internal layout, absolutely centered, scaled */
@@ -393,69 +395,100 @@ The team is a collective of high-end fashion designers from the luxury industry 
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
         }
 
-        // ── VIDEO LOADING & AUTOPLAY ───────────────────────────────────────
-        // First frame: keep autoplay attribute + preload="auto" so it autoplays at HTML parse time.
-        // All other videos: REMOVE autoplay attribute and set preload="none" — otherwise the
-        // browser starts downloading every video on the page (autoplay overrides preload).
-        // When a frame becomes active we set preload="auto" and call play() — that triggers download + play.
-        // Plus: first user gesture unlocks autoplay (handles iOS Low Power Mode etc.)
+        // ── VIDEO + IMAGE LOADING ───────────────────────────────────────────
+        // Each canvas-frame stays hidden behind a spinner until ALL its media (videos + images) is
+        // fully loaded — no more half-rendered slides flickering as data trickles in.
+
         const firstActiveFrame = document.querySelector('.portfolio-wrapper.active .canvas-frame:not(.draft)');
+
+        // Set up every video for safe muted autoplay; default to preload=none for non-first to save bandwidth.
         document.querySelectorAll('.canvas-frame video').forEach(v => {
             v.muted = true;
             v.playsInline = true;
             v.loop = true;
             const isFirstFrame = firstActiveFrame && firstActiveFrame.contains(v);
-            if (isFirstFrame) {
-                v.autoplay = true;
-                v.preload = 'auto';
-            } else {
-                v.removeAttribute('autoplay');
-                // preload="metadata" downloads only ~50KB/video (first frame poster) — videos still
-                // look like videos before play(). preload="none" makes them blank black boxes.
-                v.preload = 'metadata';
-            }
+            v.preload = isFirstFrame ? 'auto' : 'none';
+            if (!isFirstFrame) v.removeAttribute('autoplay');  // don't fight preload
         });
 
-        function loadFrameVideos(frame) {
-            if (!frame) return;
-            const allVids = frame.querySelectorAll('video');
-            if (!allVids.length) return;
-            const needsLoad = Array.from(allVids).some(v => v.readyState < 3);
-            let loader = null;
-            if (needsLoad) {
-                loader = frame.querySelector('.frame-loader');
-                if (!loader) {
-                    loader = document.createElement('div');
-                    loader.className = 'frame-loader';
-                    frame.appendChild(loader);
-                }
-                loader.classList.add('visible');
-                let pending = allVids.length;
-                const done = () => { pending--; if (pending <= 0) loader.classList.remove('visible'); };
-                allVids.forEach(v => {
-                    if (v.readyState >= 3) { done(); return; }
-                    v.addEventListener('canplay', done, { once: true });
-                    v.addEventListener('loadeddata', done, { once: true });
-                    v.addEventListener('error', done, { once: true });
-                });
-                setTimeout(() => loader.classList.remove('visible'), 6000);
+        // Mark every frame except first as "loading" so its content is hidden + spinner shows
+        document.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => {
+            if (f === firstActiveFrame) return;
+            f.classList.add('loading');
+            if (!f.querySelector('.frame-loader')) {
+                const loader = document.createElement('div');
+                loader.className = 'frame-loader';
+                f.appendChild(loader);
             }
-            allVids.forEach(v => {
-                v.muted = true;       // belt and suspenders for iOS
-                v.playsInline = true;
-                v.preload = 'auto';   // upgrade preload now that we want it
-                v.play().catch(() => {});
-                // Try again when ready in case the first attempt was rejected by autoplay policy
-                v.addEventListener('canplay', () => v.play().catch(() => {}), { once: true });
+        });
+        // Even the first frame gets a loader element + .loading class — we'll remove it once its media is ready
+        if (firstActiveFrame) {
+            firstActiveFrame.classList.add('loading');
+            if (!firstActiveFrame.querySelector('.frame-loader')) {
+                const loader = document.createElement('div');
+                loader.className = 'frame-loader';
+                firstActiveFrame.appendChild(loader);
+            }
+        }
+
+        // Returns a promise that resolves when every img/video in the frame is fully loaded.
+        // Triggers actual download for videos with preload=none by upgrading to auto and calling load().
+        function readyFrame(frame) {
+            if (!frame) return Promise.resolve();
+            if (frame.dataset.ready === '1') return Promise.resolve();
+            const media = Array.from(frame.querySelectorAll('img, video'));
+            if (!media.length) {
+                frame.dataset.ready = '1';
+                frame.classList.remove('loading');
+                return Promise.resolve();
+            }
+            const promises = media.map(el => new Promise(resolve => {
+                if (el.tagName === 'IMG') {
+                    if (el.complete && el.naturalWidth > 0) return resolve();
+                    el.addEventListener('load',  resolve, { once: true });
+                    el.addEventListener('error', resolve, { once: true });
+                } else {
+                    // VIDEO — upgrade preload, force load, wait for canplay
+                    el.muted = true;
+                    el.playsInline = true;
+                    if (el.preload !== 'auto') {
+                        el.preload = 'auto';
+                        try { el.load(); } catch (_) {}
+                    }
+                    if (el.readyState >= 3) return resolve();
+                    el.addEventListener('canplay',     resolve, { once: true });
+                    el.addEventListener('loadeddata',  resolve, { once: true });
+                    el.addEventListener('error',       resolve, { once: true });
+                }
+                // Per-element safety so a single broken file can't block the whole frame
+                setTimeout(resolve, 8000);
+            }));
+            return Promise.all(promises).then(() => {
+                frame.dataset.ready = '1';
+                frame.classList.remove('loading');
+                // Start playing now that everything's ready
+                frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
             });
         }
 
-        // Section-level: load (and play) the first frame's videos when a section enters view, pause when it leaves
+        // Reveal a frame: ensures it's ready before showing it. Also pre-warms next/prev for instant nav.
+        function showFrameReady(frame) {
+            return readyFrame(frame).then(() => {
+                // Pause videos in other frames to save resources
+                document.querySelectorAll('.canvas-frame[data-ready="1"]').forEach(f => {
+                    if (f !== frame) f.querySelectorAll('video').forEach(v => v.pause());
+                });
+                frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+            });
+        }
+
+        // Section-level lazy: when a section approaches the viewport, ready its first frame.
+        // When it leaves, pause its videos.
         const sectionLoader = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const first = entry.target.querySelector('.canvas-frame:not(.draft)');
-                    loadFrameVideos(first);
+                    if (first) readyFrame(first);
                 } else {
                     entry.target.querySelectorAll('video').forEach(v => v.pause());
                 }
@@ -464,11 +497,10 @@ The team is a collective of high-end fashion designers from the luxury industry 
 
         document.querySelectorAll('.project-section').forEach(s => sectionLoader.observe(s));
 
-        // Unlock autoplay on first user interaction — handles iOS Low Power Mode and any other autoplay block.
+        // First-tap autoplay unlock fallback (iOS Low Power Mode etc.)
         function unlockAutoplay() {
-            document.querySelectorAll('.canvas-frame video').forEach(v => {
-                v.muted = true;
-                v.playsInline = true;
+            document.querySelectorAll('.canvas-frame[data-ready="1"] video').forEach(v => {
+                v.muted = true; v.playsInline = true;
                 if (v.paused) v.play().catch(() => {});
             });
             ['click', 'touchstart', 'touchend'].forEach(ev => document.removeEventListener(ev, unlockAutoplay, true));
@@ -511,53 +543,26 @@ The team is a collective of high-end fashion designers from the luxury industry 
             setTimeout(() => scrollHint.classList.remove('flying-out'), 650);
         }
 
-        // ── INITIAL LOADER: hide as soon as the first slide has *anything* visible ──
+        // ── INITIAL LOADER: hide only when the first frame is FULLY ready ──
         const initialLoader = document.getElementById('initial-loader');
         const startTime = Date.now();
-        const minVisible = 250;  // brief floor so it doesn't just flash
+        const minVisible = 350;
         let loaderHidden = false;
         function hideInitialLoader() {
             if (loaderHidden) return;
             loaderHidden = true;
             const elapsed = Date.now() - startTime;
             const wait = Math.max(0, minVisible - elapsed);
-            setTimeout(() => {
-                if (initialLoader) initialLoader.classList.add('hidden');
-                // After the loader hides, ensure first-frame videos are actually playing
-                // (iOS sometimes doesn't autoplay videos that were covered by an overlay at load).
-                if (firstActiveFrame) {
-                    firstActiveFrame.querySelectorAll('video').forEach(v => {
-                        v.muted = true;
-                        v.playsInline = true;
-                        v.play().catch(() => {});
-                    });
-                }
-            }, wait);
+            setTimeout(() => initialLoader && initialLoader.classList.add('hidden'), wait);
         }
+        // Wait for the entire first frame (every video can play, every image fully loaded), then hide loader
         if (firstActiveFrame) {
-            const firstVids = firstActiveFrame.querySelectorAll('video');
-            const firstImgs = firstActiveFrame.querySelectorAll('img');
-            // Hide as soon as ANY single piece of media is ready (not all of them).
-            const firstReady = () => hideInitialLoader();
-            firstVids.forEach(v => {
-                if (v.readyState >= 1) { firstReady(); return; }
-                // loadedmetadata fires after just ~few KB of video — much faster than waiting for canplay
-                v.addEventListener('loadedmetadata', firstReady, { once: true });
-                v.addEventListener('loadeddata', firstReady, { once: true });
-                v.addEventListener('error', firstReady, { once: true });
-            });
-            firstImgs.forEach(i => {
-                if (i.complete && i.naturalWidth > 0) { firstReady(); return; }
-                i.addEventListener('load', firstReady, { once: true });
-                i.addEventListener('error', firstReady, { once: true });
-            });
-            // No media at all? Hide immediately.
-            if (firstVids.length === 0 && firstImgs.length === 0) hideInitialLoader();
+            readyFrame(firstActiveFrame).then(hideInitialLoader);
         } else {
             hideInitialLoader();
         }
-        // Hard safety — never leave the overlay up for more than 2.5s
-        setTimeout(hideInitialLoader, 1500);
+        // Hard safety — never leave the overlay up for more than 5s even on poor connections
+        setTimeout(hideInitialLoader, 5000);
 
         document.addEventListener('DOMContentLoaded', () => {
             // Set initial nav color from first frame of first active section
@@ -603,13 +608,16 @@ The team is a collective of high-end fashion designers from the luxury industry 
                         frames[cur]?.querySelectorAll('video').forEach(v => v.pause());
                         cur = Math.max(0, Math.min(frames.length - 1, i));
                         gallery.style.transform = `translateX(${-cur * 100}vw)`;
-                        loadFrameVideos(frames[cur]);
-                        loadFrameVideos(frames[cur + 1]);
-                        loadFrameVideos(frames[cur - 1]);
+                        // Ready the current frame (spinner shows until media loads, then content fades in)
+                        readyFrame(frames[cur]).then(() => {
+                            frames[cur]?.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+                        });
+                        // Pre-warm neighbors silently so next click is instant
+                        if (frames[cur + 1]) readyFrame(frames[cur + 1]);
+                        if (frames[cur - 1]) readyFrame(frames[cur - 1]);
                         const bright = frames[cur]?.classList.contains('bg-white') ?? false;
                         setNavColor(bright);
                         updateArrows();
-                        // show scroll hint once the last slide is reached
                         if (cur === frames.length - 1) showScrollHint(rightArr);
                     }
 
@@ -639,7 +647,13 @@ The team is a collective of high-end fashion designers from the luxury industry 
                     const sec = sectionEls[idx];
                     if (!sec) return;
                     const frame = sec.querySelector('.canvas-frame:not(.draft)');
-                    if (frame) setNavColor(frame.classList.contains('bg-white'));
+                    if (frame) {
+                        setNavColor(frame.classList.contains('bg-white'));
+                        // Make sure the new section's first frame is ready (spinner shows until then)
+                        readyFrame(frame).then(() => {
+                            frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+                        });
+                    }
                     setCurrentNav(idx);
                     const newRightArr = sec.querySelector('.gallery-arrow.right');
                     hideScrollHint(newRightArr);
