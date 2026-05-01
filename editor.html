@@ -316,7 +316,14 @@ function parseHTML(){
             const locked = el.hasAttribute('data-locked');
             const br = parseFloat((s.match(/border-radius:([\d.]+)px/)||[,0])[1]) || 0;
             const shadow = /box-shadow:[^;]+/.test(s);
-            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:el.getAttribute('src')||'',x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(br&&{borderRadius:br}),...(shadow&&{shadow:true}),...(locked&&{locked:true})});
+            // Read src from element directly (legacy) OR from <source> children (new mobile-aware format)
+            let elSrc = el.getAttribute('src') || '';
+            if (!elSrc && el.tagName.toLowerCase() === 'video') {
+              const sources = el.querySelectorAll('source');
+              const desktop = Array.from(sources).find(s => !s.hasAttribute('media')) || sources[sources.length - 1];
+              if (desktop) elSrc = desktop.getAttribute('src') || '';
+            }
+            layers.push({id:`l${Date.now()+li}`,type:el.tagName.toLowerCase(),src:elSrc,x:lx,y:ly,w:lw,h:lh,rot:lr,z:lz,fit:'cover',...(br&&{borderRadius:br}),...(shadow&&{shadow:true}),...(locked&&{locked:true})});
           });
           frame.querySelectorAll('.txt-layer').forEach((el,li)=>{
             const s=el.getAttribute('style')||'';
@@ -933,8 +940,17 @@ function buildHTML(){
           // Auto-shadow: black on white bg, white on black bg
           const sh = layer.shadow ? `box-shadow:0 4px 18px rgba(${slide.bg==='#fff'?'0,0,0':'255,255,255'},0.22);` : '';
           const style=pos+`object-fit:${layer.fit||'cover'};${br}${sh}`;
-          if(layer.type==='video') frame+=`<video src="${layer.filename||layer.src}"${lockAttr} style="${style}" autoplay loop muted playsinline></video>`;
-          else frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
+          if(layer.type==='video'){
+            const file = layer.filename||layer.src;
+            // Mobile <source> variant: same name with _mobile inserted before the extension.
+            const mobile = file.replace(/(\.[^.]+)$/, '_mobile$1');
+            frame+=`<video${lockAttr} style="${style}" autoplay loop muted playsinline>`
+              +`<source src="${mobile}" media="(max-width: 768px), (max-height: 500px)">`
+              +`<source src="${file}">`
+              +`</video>`;
+          } else {
+            frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
+          }
         }
       });
       frame+='</div>\n                    ';
