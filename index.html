@@ -42,11 +42,11 @@
         #initial-loader.hidden { opacity: 0; pointer-events: none; }
         #initial-loader::after { content: ''; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
 
-        /* per-frame loader — shows while a frame's media is still loading; content stays hidden underneath */
-        .canvas-frame > .canvas-inner { opacity: 1; transition: opacity 0.35s ease; }
-        .canvas-frame.loading > .canvas-inner { opacity: 0; }
-        .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.25s ease; }
-        .canvas-frame.loading > .frame-loader { opacity: 1; }
+        /* per-frame loader — content hidden by default; revealed only after JS adds .ready class */
+        .canvas-frame > .canvas-inner { opacity: 0; transition: opacity 0.4s ease; }
+        .canvas-frame.ready > .canvas-inner { opacity: 1; }
+        .frame-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; opacity: 1; transition: opacity 0.3s ease; }
+        .canvas-frame.ready > .frame-loader { opacity: 0; }
         .frame-loader::after { content: ''; width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: rgba(255,255,255,0.85); animation: fl-spin 0.8s linear infinite; }
         .canvas-frame.bg-white .frame-loader::after { border-color: rgba(0,0,0,0.15); border-top-color: rgba(0,0,0,0.65); }
         @keyframes fl-spin { to { transform: rotate(360deg); } }
@@ -369,7 +369,17 @@ The team is a collective of high-end fashion designers from the luxury industry 
             document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
         }
         updateCanvasScale();
+        // Recompute scale on every event that can change the viewport on mobile
         window.addEventListener('resize', updateCanvasScale);
+        window.addEventListener('orientationchange', updateCanvasScale);
+        window.addEventListener('load', updateCanvasScale);  // after layout settles
+        if (window.visualViewport) {
+            // visualViewport tracks the *visible* part of the viewport (handles iOS address bar collapse)
+            window.visualViewport.addEventListener('resize', updateCanvasScale);
+        }
+        // Re-check after a short delay to catch cases where initial values were stale
+        setTimeout(updateCanvasScale, 200);
+        setTimeout(updateCanvasScale, 800);
 
         // Wrap each canvas-frame's content in a .canvas-inner (the design canvas)
         document.querySelectorAll('.canvas-frame').forEach(frame => {
@@ -411,25 +421,14 @@ The team is a collective of high-end fashion designers from the luxury industry 
             if (!isFirstFrame) v.removeAttribute('autoplay');  // don't fight preload
         });
 
-        // Mark every frame except first as "loading" so its content is hidden + spinner shows
+        // Add a spinner element to every frame (CSS keeps content hidden until .ready is added)
         document.querySelectorAll('.canvas-frame:not(.draft)').forEach(f => {
-            if (f === firstActiveFrame) return;
-            f.classList.add('loading');
             if (!f.querySelector('.frame-loader')) {
                 const loader = document.createElement('div');
                 loader.className = 'frame-loader';
                 f.appendChild(loader);
             }
         });
-        // Even the first frame gets a loader element + .loading class — we'll remove it once its media is ready
-        if (firstActiveFrame) {
-            firstActiveFrame.classList.add('loading');
-            if (!firstActiveFrame.querySelector('.frame-loader')) {
-                const loader = document.createElement('div');
-                loader.className = 'frame-loader';
-                firstActiveFrame.appendChild(loader);
-            }
-        }
 
         // Returns a promise that resolves when every img/video in the frame is fully loaded.
         // Triggers actual download for videos with preload=none by upgrading to auto and calling load().
@@ -439,7 +438,7 @@ The team is a collective of high-end fashion designers from the luxury industry 
             const media = Array.from(frame.querySelectorAll('img, video'));
             if (!media.length) {
                 frame.dataset.ready = '1';
-                frame.classList.remove('loading');
+                frame.classList.add('ready');
                 return Promise.resolve();
             }
             const promises = media.map(el => new Promise(resolve => {
@@ -465,8 +464,7 @@ The team is a collective of high-end fashion designers from the luxury industry 
             }));
             return Promise.all(promises).then(() => {
                 frame.dataset.ready = '1';
-                frame.classList.remove('loading');
-                // Start playing now that everything's ready
+                frame.classList.add('ready');
                 frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
             });
         }
