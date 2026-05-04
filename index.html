@@ -18,6 +18,13 @@
         .side-menu a.current { font-size: 3.4rem; opacity: 1 !important; }
         
         .portfolio-switcher { position: fixed; bottom: 40px; left: 40px; z-index: 200; display: flex; gap: 15px; }
+
+        /* Slide counter: shows "1 / 5" in bottom-right so users see each gallery has multiple slides */
+        #slide-counter { position: fixed; bottom: 40px; right: 40px; z-index: 200; font-family: 'Anton', sans-serif; letter-spacing: 3px; color: #fff; opacity: 0; transition: opacity 0.4s ease, color 0.3s ease; pointer-events: none; }
+        #slide-counter.visible { opacity: 0.85; }
+        #slide-counter .sc-current { font-size: 1.7rem; font-weight: bold; }
+        #slide-counter .sc-sep { opacity: 0.45; padding: 0 5px; font-size: 1rem; }
+        #slide-counter .sc-total { font-size: 0.95rem; opacity: 0.65; }
         .circle-btn { width: 44px; height: 44px; background-color: white; border-radius: 50%; cursor: pointer; opacity: 0.3; transition: transform 0.3s ease, opacity 0.3s ease; }
         .circle-btn:hover { transform: scale(1.1); }
         .circle-btn.active { opacity: 1; }
@@ -179,6 +186,10 @@
             .portfolio-switcher { bottom: 14px; left: 14px; gap: 8px; }
             .circle-btn { width: 26px; height: 26px; }
             .gallery-arrow.right { right: 14px; }
+            #slide-counter { bottom: 14px; right: 14px; }
+            #slide-counter .sc-current { font-size: 1.1rem; }
+            #slide-counter .sc-sep { font-size: 0.7rem; padding: 0 3px; }
+            #slide-counter .sc-total { font-size: 0.7rem; }
             .gallery-arrow .arr { width: 14px; height: 14px; border-width: 2px; }
             #scroll-hint { bottom: 22px; gap: 6px; }
             .sh-chev { width: 18px; height: 18px; border-width: 2px; }
@@ -341,6 +352,8 @@ The team is a collective of high-end fashion designers from the luxury industry 
         </div>
     </div>
 
+    <div id="slide-counter"><span class="sc-current">1</span><span class="sc-sep">/</span><span class="sc-total">1</span></div>
+
     <div id="scroll-hint"><div class="sh-label">SCROLL</div><div class="sh-chev"></div></div>
 
     <div id="rotate-prompt">
@@ -401,9 +414,22 @@ The team is a collective of high-end fashion designers from the luxury industry 
         });
 
         // ── NAV COLOR ────────────────────────────────────────────────────────
+        const slideCounter = document.getElementById('slide-counter');
+        const scCurrent = slideCounter.querySelector('.sc-current');
+        const scTotal   = slideCounter.querySelector('.sc-total');
+
         function setNavColor(bright) {
             document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
+            if (slideCounter) slideCounter.style.color = bright ? '#000' : '#fff';
+        }
+
+        // Update the "1 / 5" counter for the active gallery
+        function updateSlideCounter(current, total) {
+            if (!slideCounter) return;
+            scCurrent.textContent = current;
+            scTotal.textContent = total;
+            slideCounter.classList.toggle('visible', total > 1);
         }
 
         // ── VIDEO + IMAGE LOADING ───────────────────────────────────────────
@@ -607,18 +633,20 @@ The team is a collective of high-end fashion designers from the luxury industry 
                         frames[cur]?.querySelectorAll('video').forEach(v => v.pause());
                         cur = Math.max(0, Math.min(frames.length - 1, i));
                         gallery.style.transform = `translateX(${-cur * 100}vw)`;
-                        // Ready the current frame (spinner shows until media loads, then content fades in)
                         readyFrame(frames[cur]).then(() => {
                             frames[cur]?.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
                         });
-                        // Pre-warm neighbors silently so next click is instant
                         if (frames[cur + 1]) readyFrame(frames[cur + 1]);
                         if (frames[cur - 1]) readyFrame(frames[cur - 1]);
                         const bright = frames[cur]?.classList.contains('bg-white') ?? false;
                         setNavColor(bright);
                         updateArrows();
+                        updateSlideCounter(cur + 1, frames.length);
                         if (cur === frames.length - 1) showScrollHint(rightArr);
                     }
+                    section._goToFrame = goToFrame;
+                    section._frameCount = frames.length;
+                    section._currentFrame = () => cur;
 
                     // Reset gallery to slide 0 (no animation) — called when user navigates away
                     section._resetGallery = () => {
@@ -648,7 +676,6 @@ The team is a collective of high-end fashion designers from the luxury industry 
                     const frame = sec.querySelector('.canvas-frame:not(.draft)');
                     if (frame) {
                         setNavColor(frame.classList.contains('bg-white'));
-                        // Make sure the new section's first frame is ready (spinner shows until then)
                         readyFrame(frame).then(() => {
                             frame.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
                         });
@@ -656,8 +683,10 @@ The team is a collective of high-end fashion designers from the luxury industry 
                     setCurrentNav(idx);
                     const newRightArr = sec.querySelector('.gallery-arrow.right');
                     hideScrollHint(newRightArr);
-                    // Reset every OTHER gallery to slide 0 so navigating back always shows the first image
+                    // Reset every OTHER gallery to slide 0
                     sectionEls.forEach((s, i) => { if (i !== idx && s._resetGallery) s._resetGallery(); });
+                    // Refresh slide counter for the new section
+                    if (sec._frameCount) updateSlideCounter((sec._currentFrame ? sec._currentFrame() : 0) + 1, sec._frameCount);
                 });
 
                 // ── Wrap-around loop: scrolling past last → first; before first → last ──
@@ -701,6 +730,34 @@ The team is a collective of high-end fashion designers from the luxury industry 
                         if (idx !== -1) container.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
                     });
                 });
+
+                // Initialize slide counter for the first section
+                const firstSec = sectionEls[0];
+                if (firstSec && firstSec._frameCount) updateSlideCounter(1, firstSec._frameCount);
+
+                // ── AUTO-DEMO on first visit: shows users that galleries have multiple slides ──
+                // Once-ever (localStorage flag). Cancels on any user interaction.
+                if (firstSec && firstSec._frameCount > 1 && !localStorage.getItem('portfolio_seen_demo')) {
+                    let demoCancelled = false;
+                    const cancel = () => {
+                        demoCancelled = true;
+                        localStorage.setItem('portfolio_seen_demo', '1');
+                        ['click','touchstart','wheel','keydown'].forEach(ev =>
+                            document.removeEventListener(ev, cancel, true));
+                    };
+                    ['click','touchstart','wheel','keydown'].forEach(ev =>
+                        document.addEventListener(ev, cancel, true));
+                    // Wait for first frame to be fully ready, then add a comfortable pause
+                    setTimeout(() => {
+                        if (demoCancelled) return;
+                        firstSec._goToFrame(1);  // peek slide 2
+                        setTimeout(() => {
+                            if (demoCancelled) return;
+                            firstSec._goToFrame(0);  // back to slide 1
+                            cancel();
+                        }, 1700);
+                    }, 2500);
+                }
             });
         });
 
@@ -709,14 +766,20 @@ The team is a collective of high-end fashion designers from the luxury industry 
             document.querySelectorAll('.circle-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(targetId).classList.add('active');
             document.getElementById('btn-' + targetId).classList.add('active');
-            // Hide scroll hint when switching pages
             scrollHint.classList.remove('flying-in', 'flying-out');
             if (targetId === 'port2') {
-                // About page is always white bg → black switcher buttons
                 setNavColor(true);
+                slideCounter.classList.remove('visible');  // no slides on the about page
             } else {
                 const first = document.querySelector(`#${targetId} .canvas-frame:not(.draft)`);
                 if (first) setNavColor(first.classList.contains('bg-white'));
+                // Restore counter for whichever section is currently in view
+                const container = document.querySelector(`#${targetId} .vertical-scroll-container`);
+                if (container) {
+                    const idx = Math.round(container.scrollTop / window.innerHeight);
+                    const sec = container.querySelectorAll('.project-section')[idx];
+                    if (sec && sec._frameCount) updateSlideCounter((sec._currentFrame ? sec._currentFrame() : 0) + 1, sec._frameCount);
+                }
             }
         }
 
