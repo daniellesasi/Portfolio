@@ -234,7 +234,7 @@ body { font-family:system-ui,sans-serif; background:#5a5a5a; color:#fff; height:
 </div>
 
 <script>
-console.log('🔧 Editor v2026-04-28-order-fix loaded');
+console.log('🔧 Editor v2026-05-05-source-safe loaded');
 const REPO='daniellesasi/Portfolio', BRANCH='main', BASE='https://daniellesasi.github.io/Portfolio/';
 const PORTS=['a1','a2'], NB=8;
 
@@ -942,14 +942,18 @@ function buildHTML(){
           const style=pos+`object-fit:${layer.fit||'cover'};${br}${sh}`;
           if(layer.type==='video'){
             const file = layer.filename||layer.src;
-            // Mobile <source> variant: same name with _mobile inserted before the extension.
+            // SAFETY: never emit a video with empty src — that would break the live site.
+            // If file is empty here, it means parseHTML failed to read the source. Skip this layer.
+            if (!file) { console.warn('Skipping video layer with empty src — parseHTML may have missed it', layer); return; }
             const mobile = file.replace(/(\.[^.]+)$/, '_mobile$1');
             frame+=`<video${lockAttr} style="${style}" autoplay loop muted playsinline>`
               +`<source src="${mobile}" media="(max-width: 768px), (max-height: 500px)">`
               +`<source src="${file}">`
               +`</video>`;
           } else {
-            frame+=`<img src="${layer.filename||layer.src}"${lockAttr} style="${style}" loading="lazy" alt="">`;
+            const file = layer.filename||layer.src;
+            if (!file) { console.warn('Skipping image layer with empty src', layer); return; }
+            frame+=`<img src="${file}"${lockAttr} style="${style}" loading="lazy" alt="">`;
           }
         }
       });
