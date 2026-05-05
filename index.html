@@ -725,12 +725,16 @@ The team is a collective of high-end fashion designers from the luxury industry 
                 });
 
                 // ── FIRST-VISIT NAV HINT ──
-                // Lock scroll IMMEDIATELY (before any user interaction is possible) so the lock is felt,
-                // animate arrow center→right to demonstrate click-to-advance, then unlock.
-                // Runs once ever (localStorage flag). Only an actual click skips it (not scroll/swipe).
+                // Lock scroll via CSS + preventDefault on wheel/touchmove (CSS alone isn't enough on all browsers).
+                // Animate arrow center→right then unlock. Runs once per browser; ?demo in URL forces it for testing.
                 const firstSec = sectionEls[0];
-                if (firstSec && firstSec._frameCount > 1 && !localStorage.getItem('portfolio_seen_navhint')) {
-                    document.body.classList.add('scroll-locked');  // applied right away
+                const forceDemo = window.location.search.indexOf('demo') !== -1;
+                const seen = localStorage.getItem('portfolio_seen_navhint');
+                if (firstSec && firstSec._frameCount > 1 && (forceDemo || !seen)) {
+                    const blockScroll = e => e.preventDefault();
+                    document.body.classList.add('scroll-locked');
+                    window.addEventListener('wheel',     blockScroll, { passive: false, capture: true });
+                    window.addEventListener('touchmove', blockScroll, { passive: false, capture: true });
                     let done = false;
                     const finish = () => {
                         if (done) return;
@@ -738,10 +742,11 @@ The team is a collective of high-end fashion designers from the luxury industry 
                         document.body.classList.remove('scroll-locked');
                         navHint.classList.remove('flying');
                         navHint.style.opacity = '0';
-                        localStorage.setItem('portfolio_seen_navhint', '1');
+                        window.removeEventListener('wheel',     blockScroll, { capture: true });
+                        window.removeEventListener('touchmove', blockScroll, { capture: true });
                         document.removeEventListener('click', finish, true);
+                        if (!forceDemo) localStorage.setItem('portfolio_seen_navhint', '1');
                     };
-                    // Only an explicit click skips the demo (scroll and swipe are silently absorbed by the lock)
                     document.addEventListener('click', finish, true);
                     setTimeout(() => {
                         if (done) return;
