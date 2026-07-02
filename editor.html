@@ -251,13 +251,15 @@ let activeSec=null, activeSlide=0, selId=null;
 let drag=null; // {type:'move'|'resize'|'rotate', handle, sx,sy, ox,oy,ow,oh,orot}
 let autoSaveTimer=null;
 let unsaved=false;  // true when there are pending changes not yet pushed
+let isSaving=false; // mutex to prevent concurrent saves
 
 function queuePush(){
-  if(!idxSha||!tok()) return;
+  if(!tok()){st('No token — enter token and click Load','er'); return;}
+  if(!idxSha){st('Not loaded — click Load first','er'); return;}
   unsaved=true;
   clearTimeout(autoSaveTimer);
-  st('● Unsaved — saving in 2s…','warn');
-  autoSaveTimer=setTimeout(()=>saveAll(), 2000);
+  st('● Unsaved — saving in 4s…','warn');
+  autoSaveTimer=setTimeout(()=>saveAll(), 4000);
 }
 
 // Warn before unload if there are unsaved changes
@@ -881,6 +883,8 @@ function addToolsCaptionToAll(){
 async function saveAll(){
   if(!tok()){alert('No GitHub token — enter your token and click Load first.');return;}
   if(!idxSha){alert('Editor not loaded — click Load first.');return;}
+  if(isSaving){st('⏳ Already saving — will retry…','warn'); return;}
+  isSaving=true;
   $('saveBtn').disabled=true;
   // Collect all layers with b64 (newly added files)
   const uploads=[]; Object.values(sections).forEach(slides=>slides.forEach(sl=>sl.layers.forEach(l=>{if(l.b64)uploads.push(l);})));
@@ -924,14 +928,17 @@ async function saveAll(){
   try{
     await pushHTML();
     unsaved=false;
-    st(`✓ ${uploads.length} file(s) + index.html saved`,'ok');
+    st(`✓ ${uploads.length?uploads.length+' file(s) + ':''}index.html saved`,'ok');
     console.log('Push complete');
   } catch(e){
     console.error('pushHTML failed:', e);
-    alert(`index.html push failed:\n${e.message}`);
-    st('index.html failed','er');
+    alert(`Save failed — your changes are still in the editor but not on GitHub.\n\nError: ${e.message}\n\nTry clicking "Push to GitHub" again.`);
+    st('⚠ Save failed — click Push to retry','er');
   }
+  isSaving=false;
   $('saveBtn').disabled=false; renderGrid();
+  // If changes came in while we were saving, save again
+  if(unsaved) queuePush();
 }
 
 function buildHTML(){
