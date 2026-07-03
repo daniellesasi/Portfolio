@@ -496,6 +496,8 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
             if (navHintChev) navHintChev.style.borderColor = bright ? '#000' : '#fff';
             document.getElementById('scroll-hint').classList.toggle('on-white', bright);
+            // Extend slide background into safe-area insets (notch/home indicator zone on phones)
+            document.body.style.backgroundColor = bright ? '#fff' : '#000';
         }
 
         // ── VIDEO + IMAGE LOADING ───────────────────────────────────────────
