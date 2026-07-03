@@ -634,12 +634,14 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
         const scrollHint = document.getElementById('scroll-hint');
         let scrollHintTimer = null;
 
-        function showScrollHint(rightArrowEl) {
+        function showScrollHint(rightArrowEl, rectOverride) {
             clearTimeout(scrollHintTimer);
             // Calculate offset: where the right arrow is relative to the hint's rest position
             const restX = window.innerWidth / 2;
             const restY = window.innerHeight - 72;
-            const rect = rightArrowEl ? rightArrowEl.getBoundingClientRect() : null;
+            // Use rectOverride when the arrow is already hidden (display:none returns 0,0,0,0)
+            const rect = (rectOverride && rectOverride.width > 0) ? rectOverride
+                       : (rightArrowEl ? rightArrowEl.getBoundingClientRect() : null);
             const ox = rect ? (rect.left + rect.width / 2) - restX : 0;
             const oy = rect ? (rect.top  + rect.height / 2) - restY : 0;
             scrollHint.style.setProperty('--ox', ox + 'px');
@@ -739,8 +741,11 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                         if (frames[cur - 1]) readyFrame(frames[cur - 1]);
                         const bright = frames[cur]?.classList.contains('bg-white') ?? false;
                         setNavColor(bright);
+                        // Capture right-arrow rect BEFORE updateArrows() hides it on the last frame
+                        const isLast = cur === frames.length - 1;
+                        const hintOriginRect = isLast ? rightArr.getBoundingClientRect() : null;
                         updateArrows();
-                        if (cur === frames.length - 1) showScrollHint(rightArr);
+                        if (isLast) showScrollHint(rightArr, hintOriginRect);
                     }
                     section._goToFrame = goToFrame;
                     section._frameCount = frames.length;
