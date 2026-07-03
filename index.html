@@ -94,7 +94,13 @@
             50%  { opacity: 1;    transform: translateY(-50%) scale(1.1); }
             100% { opacity: 0.25; transform: translateY(-50%) scale(0.9); }
         }
+        @keyframes arr-pulse {
+            0%, 100% { opacity: 0.12; transform: translateY(-50%) scale(0.8); }
+            50%      { opacity: 1;    transform: translateY(-50%) scale(1.3); }
+        }
+        .gallery-arrow.right.must-click { animation: arr-pulse 0.7s ease-in-out infinite !important; }
         .project-section:hover .gallery-arrow { animation-play-state: paused; }
+        .project-section:hover .gallery-arrow.must-click { animation-play-state: running !important; }
 
         /* ── SCROLL HINT ── */
         #scroll-hint { position: fixed; bottom: 72px; left: 50%; z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 8px rgba(0,0,0,0.7)) drop-shadow(0 2px 16px rgba(0,0,0,0.5)); --ox:0px; --oy:0px; --tx:0px; --ty:0px; }
@@ -818,17 +824,18 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                 });
 
                 // ── FIRST-VISIT NAV HINT ──
-                // Lock scroll via CSS + preventDefault on wheel/touchmove (CSS alone isn't enough on all browsers).
-                // Animate arrow center→right then unlock. Runs once per browser; ?demo in URL forces it for testing.
+                // Lock scroll and show blinking arrow until user clicks the right side at least once.
+                // Runs once per browser; ?demo in URL forces it for testing.
                 const firstSec = sectionEls[0];
                 const forceDemo = window.location.search.indexOf('demo') !== -1;
                 const seen = localStorage.getItem('portfolio_seen_navhint');
-                if (firstSec && firstSec._frameCount > 1 && (forceDemo || !seen)) {
+                if (firstSec && (forceDemo || !seen)) {
                     const blockScroll = e => e.preventDefault();
                     document.body.classList.add('scroll-locked');
                     window.addEventListener('wheel',     blockScroll, { passive: false, capture: true });
                     window.addEventListener('touchmove', blockScroll, { passive: false, capture: true });
                     let done = false;
+                    const firstRightArr = firstSec.querySelector('.gallery-arrow.right');
                     const finish = () => {
                         if (done) return;
                         done = true;
@@ -837,16 +844,25 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                         navHint.style.opacity = '0';
                         window.removeEventListener('wheel',     blockScroll, { capture: true });
                         window.removeEventListener('touchmove', blockScroll, { capture: true });
-                        document.removeEventListener('click', finish, true);
+                        firstRightArr?.classList.remove('must-click');
                         if (!forceDemo) localStorage.setItem('portfolio_seen_navhint', '1');
                     };
-                    document.addEventListener('click', finish, true);
+                    // Play the flying arrow animation to show where to click
                     setTimeout(() => {
                         if (done) return;
                         navHint.classList.remove('flying'); void navHint.offsetWidth;
                         navHint.classList.add('flying');
-                        setTimeout(finish, 2700);
+                        // After animation ends, make right arrow pulse urgently
+                        setTimeout(() => { if (!done) firstRightArr?.classList.add('must-click'); }, 2600);
                     }, 700);
+                    // Unlock only when user clicks the right half of the first section
+                    firstSec.addEventListener('click', e => {
+                        if (!done && e.clientX >= window.innerWidth / 2) finish();
+                    });
+                    // Fallback: single-frame sections unlock on any click
+                    if (firstSec._frameCount <= 1) {
+                        document.addEventListener('click', finish, { once: true, capture: true });
+                    }
                 }
             });
         });
