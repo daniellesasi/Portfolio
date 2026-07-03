@@ -14,11 +14,11 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
         
         .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; max-height: calc(100vh - 60px); max-height: calc(100svh - 60px); overflow: hidden; }
         .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: color 0.3s ease, opacity 0.4s ease, transform 0.4s ease, font-size 0.35s ease; }
@@ -50,9 +50,10 @@
         .portfolio-wrapper.active { display: block; }
         
         /* vertical scroll between galleries */
-        .vertical-scroll-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100svh; overflow-y: scroll; overflow-x: hidden; scroll-snap-type: y mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+        .vertical-scroll-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100svh; overflow-y: scroll; overflow-x: hidden; scroll-snap-type: y mandatory; overscroll-behavior-y: contain; touch-action: pan-y; scrollbar-width: none; -ms-overflow-style: none; }
+        /* scroll-behavior: smooth intentionally removed — it breaks scroll-snap on Android Chrome */
         .vertical-scroll-container::-webkit-scrollbar { display: none; }
-        .project-section { width: 100vw; height: 100vh; height: 100svh; flex-shrink: 0; scroll-snap-align: start; overflow: hidden; position: relative; cursor: pointer; }
+        .project-section { width: 100vw; height: 100vh; height: 100svh; flex-shrink: 0; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; position: relative; cursor: pointer; }
 
         /* horizontal slides inside each gallery, navigated by click */
         .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; height: 100svh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
@@ -775,8 +776,15 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                 });
 
                 // ── Vertical scroll: update nav color, active number, reset other galleries ──
+                // scrollend fallback for older Android Chrome (< 114)
+                let scrollEndTimer = null;
+                container.addEventListener('scroll', () => {
+                    clearTimeout(scrollEndTimer);
+                    scrollEndTimer = setTimeout(() => container.dispatchEvent(new Event('scrollend')), 200);
+                });
                 container.addEventListener('scrollend', () => {
-                    const idx = Math.round(container.scrollTop / window.innerHeight);
+                    clearTimeout(scrollEndTimer);
+                    const idx = Math.round(container.scrollTop / container.clientHeight);
                     const sec = sectionEls[idx];
                     if (!sec) return;
                     const frame = sec.querySelector('.canvas-frame:not(.draft)');
@@ -796,14 +804,14 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                 // ── Wrap-around loop: scrolling past last → first; before first → last ──
                 const lastIdx = sectionEls.length - 1;
                 function tryLoop(direction) {
-                    const idx = Math.round(container.scrollTop / window.innerHeight);
+                    const idx = Math.round(container.scrollTop / container.clientHeight);
                     const tol = 8;
-                    if (direction > 0 && idx >= lastIdx && container.scrollTop >= lastIdx * window.innerHeight - tol) {
+                    if (direction > 0 && idx >= lastIdx && container.scrollTop >= sectionEls[lastIdx].offsetTop - tol) {
                         container.scrollTo({ top: 0, behavior: 'smooth' });
                         return true;
                     }
                     if (direction < 0 && idx <= 0 && container.scrollTop <= tol) {
-                        container.scrollTo({ top: lastIdx * window.innerHeight, behavior: 'smooth' });
+                        container.scrollTo({ top: sectionEls[lastIdx].offsetTop, behavior: 'smooth' });
                         return true;
                     }
                     return false;
@@ -831,7 +839,7 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                         e.preventDefault();
                         const id = link.getAttribute('href').slice(1);
                         const idx = sectionEls.findIndex(s => s.id === id);
-                        if (idx !== -1) container.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
+                        if (idx !== -1) container.scrollTo({ top: sectionEls[idx].offsetTop, behavior: 'smooth' });
                     });
                 });
 
