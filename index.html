@@ -20,7 +20,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; }
         
-        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; }
+        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; max-height: calc(100vh - 60px); overflow: hidden; }
         .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: color 0.3s ease, opacity 0.4s ease, transform 0.4s ease, font-size 0.35s ease; }
         .side-menu a:hover { opacity: 0.6; transform: translateX(10px); }
         .side-menu a.current { font-size: 3.4rem; opacity: 1 !important; }
@@ -189,6 +189,13 @@
             #rotate-prompt { display: flex; }
         }
 
+        /* ── SHORT SCREENS (small laptops, monitors ~600-750px tall) ── */
+        @media (max-height: 750px) {
+            .side-menu { top: 24px; left: 24px; gap: 6px; }
+            .side-menu a { font-size: 1.5rem; }
+            .side-menu a.current { font-size: 2.4rem; }
+        }
+
         @media (max-height: 500px) {
             .about-content { padding: 50px 36px 70px; max-width: 560px; }
             .about-title { font-size: 1.7rem; margin-bottom: 32px; letter-spacing: 2px; }
@@ -198,9 +205,9 @@
 
         /* ── MOBILE LANDSCAPE: scale UI chrome down to fit short screens ── */
         @media (max-height: 500px) {
-            .side-menu { top: 14px; left: 14px; gap: 4px; }
-            .side-menu a { font-size: 1.05rem; }
-            .side-menu a.current { font-size: 1.7rem; }
+            .side-menu { top: 8px; left: 10px; gap: 1px; }
+            .side-menu a { font-size: 0.85rem; }
+            .side-menu a.current { font-size: 1.35rem; }
             .portfolio-switcher { bottom: 14px; left: 14px; gap: 8px; }
             .circle-btn { width: 26px; height: 26px; }
             .gallery-arrow.right { right: 14px; }
@@ -209,6 +216,8 @@
             #scroll-hint { bottom: 22px; gap: 6px; }
             .sh-chev { width: 18px; height: 18px; border-width: 2px; }
             .sh-label { font-size: 0.55rem; letter-spacing: 2px; }
+            /* Scale up text layers so they're readable on phone screens */
+            .canvas-frame .txt-layer { font-size: max(inherit, 2vmin) !important; }
         }
     </style>
 </head>
