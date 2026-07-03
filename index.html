@@ -452,9 +452,7 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
             const vp = window.visualViewport;
             const w = vp ? vp.width  : window.innerWidth;
             const h = vp ? vp.height : window.innerHeight;
-            const scale = (h < 500 && w > h)
-                ? w / DESIGN_W
-                : Math.min(w / DESIGN_W, h / DESIGN_H);
+            const scale = Math.min(w / DESIGN_W, h / DESIGN_H);
             document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
         }
         updateCanvasScale();
