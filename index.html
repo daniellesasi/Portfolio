@@ -3,6 +3,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modern Chic Portfolio - Real Media</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GYNCENQP5X"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GYNCENQP5X');
+    </script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
@@ -880,4 +888,30 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
 
 
 
+    <script>
+      // GA4 section tracking — fires when each section enters/exits view
+      (function(){
+        if(typeof gtag !== 'function') return;
+        const timers = {};
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            const id = entry.target.id;
+            const nav = document.querySelector(`.side-menu a[href="#${id}"]`);
+            const label = nav ? `Section ${nav.textContent} (${id})` : id;
+            if(entry.isIntersecting){
+              timers[id] = performance.now();
+              gtag('event', 'section_view', { section_id: id, section_label: label });
+            } else if(timers[id]){
+              const secs = Math.round((performance.now() - timers[id]) / 1000);
+              if(secs >= 2) gtag('event', 'section_time_spent', { section_id: id, section_label: label, seconds: secs });
+              delete timers[id];
+            }
+          });
+        }, { threshold: 0.5 });
+
+        window.addEventListener('load', () => {
+          document.querySelectorAll('.project-section:not(.draft)').forEach(s => observer.observe(s));
+        });
+      })();
+    </script>
 </body></html>
