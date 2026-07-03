@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Modern Chic Portfolio - Real Media</title>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-GYNCENQP5X"></script>
@@ -20,7 +20,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Anton', sans-serif; overflow: hidden; background-color: #000; letter-spacing: 1px; }
         
-        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; max-height: calc(100vh - 60px); overflow: hidden; }
+        .side-menu { position: fixed; top: 40px; left: 40px; z-index: 100; display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.4s ease; max-height: calc(100vh - 60px); max-height: calc(100svh - 60px); overflow: hidden; }
         .side-menu a { text-decoration: none; color: white; font-size: 2.1rem; transition: color 0.3s ease, opacity 0.4s ease, transform 0.4s ease, font-size 0.35s ease; }
         .side-menu a:hover { opacity: 0.6; transform: translateX(10px); }
         .side-menu a.current { font-size: 3.4rem; opacity: 1 !important; }
@@ -50,14 +50,14 @@
         .portfolio-wrapper.active { display: block; }
         
         /* vertical scroll between galleries */
-        .vertical-scroll-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow-y: scroll; overflow-x: hidden; scroll-snap-type: y mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+        .vertical-scroll-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100svh; overflow-y: scroll; overflow-x: hidden; scroll-snap-type: y mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
         .vertical-scroll-container::-webkit-scrollbar { display: none; }
-        .project-section { width: 100vw; height: 100vh; flex-shrink: 0; scroll-snap-align: start; overflow: hidden; position: relative; cursor: pointer; }
+        .project-section { width: 100vw; height: 100vh; height: 100svh; flex-shrink: 0; scroll-snap-align: start; overflow: hidden; position: relative; cursor: pointer; }
 
         /* horizontal slides inside each gallery, navigated by click */
-        .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
+        .horizontal-gallery { display: flex; flex-direction: row; width: 100vw; height: 100vh; height: 100svh; will-change: transform; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
         .horizontal-gallery.no-transition { transition: none !important; }
-        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; flex-shrink: 0; overflow: hidden; background: #000; }
+        .canvas-frame { position: relative; min-width: 100vw; width: 100vw; height: 100vh; height: 100svh; flex-shrink: 0; overflow: hidden; background: #000; }
         .canvas-frame.bg-white { background: #fff; }
         .canvas-frame.draft { display: none !important; }
         .project-section.draft { display: none !important; }
@@ -180,7 +180,7 @@
         /* ── ABOUT PAGE (port2) — fonts match the slide text (system sans-serif) ── */
         .about-wrapper { background: #fff; color: #000; }
         .about-wrapper.active { display: block; }
-        .about-scroll { width: 100vw; height: 100vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+        .about-scroll { width: 100vw; height: 100vh; height: 100svh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
         .about-scroll::-webkit-scrollbar { display: none; }
         .about-content { max-width: 640px; margin: 0 auto; padding: 90px 40px 100px; font-family: 'sans-serif', sans-serif; letter-spacing: 1px; }
         .about-title { font-family: 'monospace', sans-serif; font-size: 2.2rem; font-weight: bold; letter-spacing: 3px; line-height: 1.15; margin: 0 0 56px; }
@@ -448,9 +448,9 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
         const DESIGN_W = 1920, DESIGN_H = 1080;
 
         function updateCanvasScale() {
-            const w = window.innerWidth, h = window.innerHeight;
-            // Always contain (fit) so the full 16:9 composition is visible on every screen.
-            // Slide backgrounds (black/white) fill the letterbox margin so it looks intentional.
+            const vp = window.visualViewport;
+            const w = vp ? vp.width  : window.innerWidth;
+            const h = vp ? vp.height : window.innerHeight;
             const scale = Math.min(w / DESIGN_W, h / DESIGN_H);
             document.documentElement.style.setProperty('--canvas-scale', scale.toFixed(4));
         }
