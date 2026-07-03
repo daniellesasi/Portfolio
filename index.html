@@ -121,11 +121,13 @@
             0%   { opacity:1; transform:translateX(-50%) translateY(0); }
             100% { opacity:0; transform:translateX(calc(-50% + var(--tx))) translateY(var(--ty)); }
         }
-        .sh-label { font-family:'Anton',sans-serif; font-size:0.7rem; letter-spacing:4px; color:#fff; opacity:0; transition: opacity 0.35s 0.6s ease; }
+        .sh-label { font-family:'Anton',sans-serif; font-size:0.7rem; letter-spacing:4px; color:#fff; opacity:0; transition: opacity 0.35s 0.6s ease, color 0.3s ease; }
         #scroll-hint.flying-in .sh-label { opacity:1; }
-        .sh-chev { width:28px; height:28px; border-right:3px solid #fff; border-bottom:3px solid #fff; transform:rotate(-45deg); transition: transform 0.5s 0.2s cubic-bezier(0.4,0,0.2,1); }
+        .sh-chev { width:28px; height:28px; border-right:3px solid #fff; border-bottom:3px solid #fff; transform:rotate(-45deg); transition: transform 0.5s 0.2s cubic-bezier(0.4,0,0.2,1), border-color 0.3s ease; }
         #scroll-hint.flying-in  .sh-chev { transform:rotate(45deg); }
         #scroll-hint.flying-out .sh-chev { transform:rotate(-45deg); transition-delay:0s; }
+        #scroll-hint.on-white .sh-label { color:#000; }
+        #scroll-hint.on-white .sh-chev  { border-right-color:#000; border-bottom-color:#000; }
 
         /* ── MOBILE ── */
         #rotate-prompt {
@@ -491,6 +493,7 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
             document.querySelectorAll('.side-menu a').forEach(a => a.style.color = bright ? '#000' : '#fff');
             document.querySelectorAll('.circle-btn').forEach(b => b.style.backgroundColor = bright ? '#000' : '#fff');
             if (navHintChev) navHintChev.style.borderColor = bright ? '#000' : '#fff';
+            document.getElementById('scroll-hint').classList.toggle('on-white', bright);
         }
 
         // ── VIDEO + IMAGE LOADING ───────────────────────────────────────────
@@ -848,21 +851,23 @@ RETURENS</div><div class="txt-layer" data-locked="1" style="position:absolute;le
                         if (!forceDemo) localStorage.setItem('portfolio_seen_navhint', '1');
                     };
                     // Play the flying arrow animation to show where to click
+                    let pulsingStarted = false;
                     setTimeout(() => {
                         if (done) return;
                         navHint.classList.remove('flying'); void navHint.offsetWidth;
                         navHint.classList.add('flying');
-                        // After animation ends, make right arrow pulse urgently
-                        setTimeout(() => { if (!done) firstRightArr?.classList.add('must-click'); }, 2600);
+                        // After animation ends, make right arrow pulse and allow any click to unlock
+                        setTimeout(() => {
+                            if (done) return;
+                            firstRightArr?.classList.add('must-click');
+                            pulsingStarted = true;
+                        }, 2600);
                     }, 700);
-                    // Unlock only when user clicks the right half of the first section
+                    // During animation: right-side click unlocks. Once pulsing: any click unlocks.
                     firstSec.addEventListener('click', e => {
-                        if (!done && e.clientX >= window.innerWidth / 2) finish();
+                        if (done) return;
+                        if (pulsingStarted || e.clientX >= window.innerWidth / 2) finish();
                     });
-                    // Fallback: single-frame sections unlock on any click
-                    if (firstSec._frameCount <= 1) {
-                        document.addEventListener('click', finish, { once: true, capture: true });
-                    }
                 }
             });
         });
